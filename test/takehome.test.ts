@@ -31,12 +31,36 @@ after(() => {
   target?.kill("SIGTERM");
 });
 
-test("take-home capability replays through the iframe target", async () => {
+test("take-home capability replays through the iframe target and extracts typed outputs", async () => {
   const surface = await PlaywrightSurface.launch({ entrypoint, headless: true });
   try {
     const result = await new ReplayEngine(surface, new MemoryEvidenceSink(), { runId: "browser-success" })
       .run(stageCapability, { market: "ASH-17", quantity: "25" });
     assert.equal(result.status, "success", describe(result));
+    if (result.status === "success") {
+      assert.deepEqual(result.outputs, {
+        reference: "STG-001",
+        market: "ASH-17",
+        quantity: 25,
+        total_credits: 3600,
+      });
+    }
+  } finally {
+    await surface.close();
+  }
+});
+
+test("typed outputs vary with replay inputs and target data", async () => {
+  const surface = await PlaywrightSurface.launch({ entrypoint, headless: true });
+  try {
+    const result = await new ReplayEngine(surface, new MemoryEvidenceSink(), { runId: "browser-output-variation" })
+      .run(stageCapability, { market: "VES-04", quantity: "10" });
+    assert.equal(result.status, "success", describe(result));
+    if (result.status === "success") {
+      assert.equal(result.outputs.market, "VES-04");
+      assert.equal(result.outputs.quantity, 10);
+      assert.equal(result.outputs.total_credits, 2120);
+    }
   } finally {
     await surface.close();
   }
