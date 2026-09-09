@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "runId": "replay-success",
+  "capabilityId": "perihelion.stage-supply-order",
+  "capabilityVersion": 1,
+  "startedAt": "2026-09-09T22:05:29.565Z",
+  "finishedAt": "2026-09-09T22:05:37.077Z",
+  "outputs": {
+    "reference": "STG-001",
+    "market": "VES-04",
+    "quantity": 10,
+    "total_credits": 2120
+  },
+  "evidence": [
+    {
+      "kind": "log",
+      "uri": "file:///Users/leoli/Projects/Byheart/evidence/generated/replay-success/events.jsonl",
+      "description": "redacted structured run event log"
+    }
+  ]
+}

@@ -183,6 +183,8 @@ Byheart drives the safe steps to the review screen. The final consequential clic
 
 ## Submission evidence
 
+The captured submission is indexed in [`evidence/README.md`](evidence/README.md): one genuine Codex discovery, two successful replays of its compiled capability, five deterministic result cases, and a completed manual same-session takeover.
+
 The deterministic evidence bundle can be regenerated in one command:
 
 ```bash
@@ -279,6 +281,6 @@ Turn-based combat and long-horizon company management give clean decision bounda
 - [`research/SKILLS_AND_SEARCH.md`](research/SKILLS_AND_SEARCH.md) — capability composition and checkpoint search.
 - [`research/GAMEPLAY.md`](research/GAMEPLAY.md) — game-learning direction.
 - [`TAKEHOME.md`](TAKEHOME.md) — the interview-project slice.
-- [`REPORT.md`](REPORT.md) — live draft under the assignment's exact headings.
+- [`REPORT.md`](REPORT.md) — design report under the assignment's seven exact headings.
 - [`NOTES.md`](NOTES.md) — the larger idea pile.
 - [`demo/legacy-console/`](demo/legacy-console/) — current browser target.

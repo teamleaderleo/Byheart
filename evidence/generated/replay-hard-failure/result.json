@@ -1,0 +1,18 @@
+{
+  "status": "failure",
+  "runId": "replay-hard-failure",
+  "capabilityId": "perihelion.stage-supply-order",
+  "capabilityVersion": 1,
+  "startedAt": "2026-09-09T22:05:54.692Z",
+  "finishedAt": "2026-09-09T22:05:56.193Z",
+  "class": "action_failed",
+  "detail": "target must resolve exactly once; observed 0",
+  "stepId": "open-order",
+  "evidence": [
+    {
+      "kind": "log",
+      "uri": "file:///Users/leoli/Projects/Byheart/evidence/generated/replay-hard-failure/events.jsonl",
+      "description": "redacted structured run event log"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "runId": "replay-session-recovery",
+  "capabilityId": "perihelion.stage-supply-order",
+  "capabilityVersion": 1,
+  "startedAt": "2026-09-09T22:05:45.141Z",
+  "finishedAt": "2026-09-09T22:05:53.616Z",
+  "outputs": {
+    "reference": "STG-001",
+    "market": "ASH-17",
+    "quantity": 25,
+    "total_credits": 3600
+  },
+  "evidence": [
+    {
+      "kind": "log",
+      "uri": "file:///Users/leoli/Projects/Byheart/evidence/generated/replay-session-recovery/events.jsonl",
+      "description": "redacted structured run event log"
+    }
+  ]
+}

@@ -91,9 +91,13 @@ npm run byheart -- teach \
   --parameter market=ASH-17 \
   --parameter quantity=25 \
   --known-outcome "market_not_found=NO SUCH MARKET" \
+  --extract-output 'reference=string:Order reference' \
+  --extract-output 'market=string:Order market' \
+  --extract-output 'quantity=number:Order quantity' \
+  --extract-output 'total_credits=number:Order total credits' \
   --name stage-supplies-order \
-  --output runtime/stage-supplies-order.json \
-  --run-dir evidence/codex-discovery
+  --output evidence/discovery/capability.json \
+  --run-dir evidence/discovery
 ```
 
 The command prints a local discovery URL and keeps the same browser session resident. Codex drives `/v1/state` and `/v1/action`; `/v1/done` succeeds only when Byheart independently verifies `ORDER STAGED`.
@@ -102,7 +106,7 @@ Then replay with different parameters:
 
 ```bash
 npm run byheart -- replay \
-  --capability runtime/stage-supplies-order.json \
+  --capability evidence/discovery/capability.json \
   --input market=VES-04 \
   --input quantity=10
 ```
@@ -256,29 +260,15 @@ The browser demo never requires real credentials, real money, or an external ser
 
 ## Evidence
 
-The intended submission evidence tree is:
+The completed submission is indexed in [`evidence/README.md`](evidence/README.md):
 
-```text
-evidence/
-  codex-discovery/
-    discovery.jsonl
-    trace.json
-    screenshots/
-  replay-success/
-    replay.jsonl
-    result.json
-    screenshots/
-  replay-known-outcome/
-    replay.jsonl
-    result.json
-    screenshots/
-  replay-failure/
-    replay.jsonl
-    result.json
-    screenshots/
-```
+- `discovery/`: genuine Codex bridge trace, compiled capability, durability candidate/memo, redacted log, screenshots;
+- `replay-from-discovery/` and `replay-from-discovery-ash17/`: two successful invocations of that compiled capability;
+- `generated/`: success, known outcome, session recovery, hard failure, and consequence-boundary cases;
+- `handoff/`: completed manual same-session takeover and resume;
+- `validation/`: full local test output (34/34 passed).
 
-One final genuine Codex-driven teach run should be retained before submission so reviewers can inspect the full goal → agent decisions → real UI actions → compiled artifact path.
+The synthetic purchase demo ends at its declared `HUMAN APPROVAL REQUIRED` checkpoint after the human clicks Submit purchase; no real purchase is executed.
 
 ## What stays outside the first submission
 

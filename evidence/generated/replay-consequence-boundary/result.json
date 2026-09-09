@@ -1,0 +1,28 @@
+{
+  "status": "intervention_required",
+  "runId": "replay-consequence-boundary",
+  "capabilityId": "perihelion.stage-and-submit-order",
+  "capabilityVersion": 1,
+  "startedAt": "2026-09-09T22:05:56.816Z",
+  "finishedAt": "2026-09-09T22:05:59.082Z",
+  "reason": "consequential action requires human approval: click",
+  "stepId": "submit-purchase",
+  "ownership": "paused_for_review",
+  "session": {
+    "adapter": "browser",
+    "sessionId": "dad7079f-c292-414d-b561-aff5eafe5975",
+    "entrypoint": "http://127.0.0.1:4173/",
+    "metadata": {
+      "configuredEntrypoint": "http://127.0.0.1:4173",
+      "currentUrl": "http://127.0.0.1:4173/",
+      "pages": 1
+    }
+  },
+  "evidence": [
+    {
+      "kind": "log",
+      "uri": "file:///Users/leoli/Projects/Byheart/evidence/generated/replay-consequence-boundary/events.jsonl",
+      "description": "redacted structured run event log"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "runId": "d47e4057-432e-4fef-98e6-90a0a3bb7b38",
+  "capabilityId": "stage-supplies-order",
+  "capabilityVersion": 1,
+  "startedAt": "2026-09-09T22:11:08.144Z",
+  "finishedAt": "2026-09-09T22:11:09.629Z",
+  "outputs": {
+    "reference": "STG-001",
+    "market": "ASH-17",
+    "quantity": 25,
+    "total_credits": 3600
+  },
+  "evidence": [
+    {
+      "kind": "log",
+      "uri": "file:///Users/leoli/Projects/Byheart/evidence/replay-from-discovery-ash17/replay.jsonl",
+      "description": "redacted structured run event log"
+    }
+  ]
+}

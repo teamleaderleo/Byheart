@@ -1,0 +1,94 @@
+{
+  "format": "byheart-durability-candidate/v1",
+  "id": "stage-supplies-order@1",
+  "capability": {
+    "id": "stage-supplies-order",
+    "version": 1,
+    "artifactPath": "/Users/leoli/Projects/Byheart/evidence/discovery/capability.json"
+  },
+  "source": {
+    "kind": "discovery",
+    "runId": "923e3991-18ea-40b9-8310-fe8482ba7e93",
+    "goal": "Find market ASH-17 and stage an order for 25 supplies. Stop at ORDER STAGED; do not submit a purchase.",
+    "driver": "codex",
+    "evidence": [
+      "file:///Users/leoli/Projects/Byheart/evidence/discovery/discovery.jsonl"
+    ]
+  },
+  "proposed": {
+    "primary": "capability",
+    "alternatives": [
+      "recovery",
+      "plan",
+      "instruction"
+    ],
+    "reason": "The successful trace has already been compiled into deterministic replay. Verify it on distinct inputs, then keep it or collapse stable sub-work into a cheaper durable form."
+  },
+  "applicability": {
+    "adapter": "browser",
+    "entrypoint": "http://127.0.0.1:4173",
+    "inputs": {
+      "market": {
+        "type": "string"
+      },
+      "quantity": {
+        "type": "string"
+      }
+    },
+    "outputs": {
+      "reference": {
+        "type": "string",
+        "description": "Extracted from the UI status named Order reference."
+      },
+      "market": {
+        "type": "string",
+        "description": "Extracted from the UI status named Order market."
+      },
+      "quantity": {
+        "type": "number",
+        "description": "Extracted from the UI status named Order quantity."
+      },
+      "total_credits": {
+        "type": "number",
+        "description": "Extracted from the UI status named Order total credits."
+      }
+    }
+  },
+  "signals": {
+    "steps": 7,
+    "actionKinds": {
+      "type": 2,
+      "click": 4,
+      "select": 1
+    },
+    "brittleTargets": 0,
+    "unsuccessfulActions": 0,
+    "repeatedActionSignatures": []
+  },
+  "verification": {
+    "requiredDistinctSuccesses": 2,
+    "attempts": [
+      {
+        "at": "2026-09-09T22:05:41.045Z",
+        "invocationHash": "96f69a1ca8333a32c1671a88",
+        "status": "success",
+        "runId": "3bdef8a7-fa63-4bb4-a450-6539b70eea7b"
+      },
+      {
+        "at": "2026-09-09T22:11:09.688Z",
+        "invocationHash": "3680cc70cd345e3d4b97e642",
+        "status": "success",
+        "runId": "d47e4057-432e-4fef-98e6-90a0a3bb7b38"
+      }
+    ]
+  },
+  "status": "verified",
+  "createdAt": "2026-09-09T22:05:02.496Z",
+  "updatedAt": "2026-09-09T22:11:09.688Z",
+  "notes": [
+    "Can any part of the successful work be replaced by a smaller deterministic helper or command instead of preserving UI choreography?",
+    "Are the capability inputs broad enough for the next real variation without hiding app-specific assumptions?",
+    "What exact failure should send Codex back to exploration instead of retrying blindly?",
+    "Consider whether this is already several meaningful skills composed in sequence instead of one monolithic capability."
+  ]
+}
