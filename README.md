@@ -26,78 +26,130 @@ The longer question is:
 
 ## Current status
 
-The dependency-light core is running and tested. It currently contains:
+The browser vertical slice now includes:
 
-- typed capability and result contracts;
+- typed `byheart-capability/v1` and result contracts;
 - input validation and parameter templating;
-- deterministic replay;
+- deterministic replay without a model in the decision loop;
 - explicit known outcomes versus execution failures;
-- preconditions, postconditions, retries, and recovery hooks;
-- adapter/action/entrypoint allowlists;
-- human approval routing for consequential actions;
-- redacted structured evidence;
+- preconditions, postconditions, retries, recoveries, and human-on-failure routing;
+- adapter/action/entrypoint allowlists and consequential-action policy;
+- redacted JSONL evidence and screenshots;
 - explicit live-session ownership states;
-- model-facing discovery loop;
-- successful-trace → capability compiler;
-- scripted adapter for deterministic tests;
-- a deliberately awkward local legacy-style browser target for the next milestone.
+- real same-session human takeover and resume;
+- model-facing observe → decide → act discovery;
+- successful-trace → parameterized capability compiler;
+- Playwright browser adapter with cross-frame semantic targeting;
+- OpenAI Responses discovery model;
+- a deliberately awkward local legacy-style browser target.
 
-Run the core:
+## Setup
+
+Requirements: Node 22+ and an OpenAI API key only for live discovery.
 
 ```bash
 npm install
+npm run browser:install
 npm test
-npm run demo
 ```
 
-Run the local UI target:
+Keep credentials in the environment. See `.env.example`.
+
+## Demo target
+
+Terminal 1:
 
 ```bash
 npm run demo:target
 ```
 
-Then open `http://127.0.0.1:4173`.
+The Perihelion Exchange Console runs at `http://127.0.0.1:4173`. It is table-heavy, iframe-based, and intentionally lacks test IDs. It exposes search → detail → form → review → confirmation plus injectable slowness, session expiry, surprise dialogs, validation errors, and a consequential purchase boundary.
 
-## Near-term milestone
+### Deterministic replay
 
-The next milestone is the complete computer-use take-home vertical slice:
+Terminal 2:
 
-```text
-natural-language goal
-  ↓
-real LLM discovery against the local UI
-  ↓
-saved byheart-capability/v1 artifact
-  ↓
-deterministic Playwright replay
-  ↓
-success / known outcome / failure / human takeover
-  ↓
-evidence
+```bash
+npm run byheart -- replay \
+  --capability examples/capabilities/stage-supplies-order.json \
+  --input market=ASH-17 \
+  --input quantity=25 \
+  --headed
 ```
 
-The local target already exposes a search → detail → form → review → confirmation flow plus injected slowness, session expiry, surprise dialog, validation errors, and a consequential purchase boundary.
+Try a legitimate domain outcome:
+
+```bash
+npm run byheart -- replay \
+  --capability examples/capabilities/stage-supplies-order.json \
+  --input market=DOES-NOT-EXIST \
+  --input quantity=25
+```
+
+The result is `known_outcome: market_not_found`, rather than an execution crash.
+
+### Same-session human takeover
+
+```bash
+npm run byheart -- replay \
+  --capability examples/capabilities/stage-and-submit-order.json \
+  --input market=ASH-17 \
+  --input quantity=25 \
+  --operator \
+  --headed
+```
+
+Byheart drives the safe steps to the review screen. The final consequential click pauses automation and opens a tiny operator surface. Use the same live target browser to perform the requested step, then choose **Resume automation** in the operator surface. Replay verifies the postcondition and continues on that same session.
+
+### Real model discovery
+
+With `OPENAI_API_KEY` set:
+
+```bash
+npm run byheart -- teach \
+  --url http://127.0.0.1:4173 \
+  --goal "Look up market ASH-17, stage a purchase order for 25 supplies, and stop when ORDER STAGED is visible." \
+  --success-text "ORDER STAGED" \
+  --parameter market=ASH-17 \
+  --parameter quantity=25 \
+  --known-outcome "market_not_found=NO SUCH MARKET" \
+  --name stage-supply-order \
+  --output runtime/stage-supply-order.json \
+  --headed
+```
+
+Discovery stores screenshots, a structured decision/action log, and the external trace under `runtime/`, then emits a parameterized capability. Replay it without another model decision loop:
+
+```bash
+npm run byheart -- replay \
+  --capability runtime/stage-supply-order.json \
+  --input market=VES-04 \
+  --input quantity=10 \
+  --headed
+```
+
+## Result classes
+
+Replay reports one of four top-level outcomes:
+
+```text
+success
+known_outcome
+failure
+intervention_required
+```
+
+An action receipt also keeps **delivery** separate from **verified effect**. A click reaching the input channel does not prove the application did what was intended.
 
 ## Beyond the take-home
 
-Byheart is intentionally broader than browsers. A surface may be:
-
-- web page;
-- native desktop app;
-- accessibility tree;
-- screenshot + coordinates;
-- remote desktop;
-- Linux/Windows VM;
-- Moonlight session;
-- game;
-- semantic adapter embedded in the target;
-- hybrid of several observation/action channels.
+Byheart is intentionally broader than browsers. A surface may be a native desktop app, accessibility tree, screenshot/coordinate stream, remote desktop, Linux/Windows VM, Moonlight session, game, embedded semantic adapter, or a hybrid of several channels.
 
 The personally interesting research path is games where a strong model can supply useful priors immediately and repeated successful behavior can migrate into cheaper skills.
 
 ### Starsector
 
-Preflight already contains the beginnings of a semantic game-control layer. Byheart can eventually sit above it for campaign planning, UI operation, pause/resume movement, evasion, trading/smuggling, checkpointed plan comparison, and compilation of repeated procedures.
+Preflight already contains the beginnings of a semantic game-control layer. Byheart can sit above it for campaign planning, UI operation, pause/resume movement, evasion, trading/smuggling, checkpointed plan comparison, and compilation of repeated procedures.
 
 ### Battle Brothers
 
