@@ -140,8 +140,14 @@ export class PlaywrightSurface implements Surface {
     }
 
     const after = await this.observe();
-    const effectObserved = delivered && (action.kind === "read" || action.kind === "wait" || fingerprint(before) !== fingerprint(after));
-    const evidence = [before.screenshot, after.screenshot].filter((item): item is EvidenceRef => item !== undefined);
+    const effectObserved = delivered && (
+      action.kind === "read" ||
+      action.kind === "wait" ||
+      fingerprint(before) !== fingerprint(after)
+    );
+    const evidence = [before.screenshot, after.screenshot].filter(
+      (item): item is EvidenceRef => item !== undefined,
+    );
 
     return {
       requestedAt,
@@ -326,14 +332,21 @@ export class PlaywrightSurface implements Surface {
   }
 }
 
-function buildLocator(frame: Frame, target: Exclude<Locator, { kind: "point" } | { kind: "semantic" }>): PlaywrightLocator {
+function buildLocator(
+  frame: Frame,
+  target: Exclude<Locator, { kind: "point" } | { kind: "semantic" }>,
+): PlaywrightLocator {
+  const exact = target.exact === undefined ? {} : { exact: target.exact };
   switch (target.kind) {
     case "role":
-      return frame.getByRole(target.role as never, { name: target.name, exact: target.exact });
+      return frame.getByRole(target.role as Parameters<Frame["getByRole"]>[0], {
+        name: target.name,
+        ...exact,
+      });
     case "label":
-      return frame.getByLabel(target.label, { exact: target.exact });
+      return frame.getByLabel(target.label, exact);
     case "text":
-      return frame.getByText(target.text, { exact: target.exact });
+      return frame.getByText(target.text, exact);
     case "selector":
       return frame.locator(target.selector);
   }
