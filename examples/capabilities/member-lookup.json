@@ -1,0 +1,70 @@
+{
+  "format": "byheart-capability/v1",
+  "id": "member.lookup-balance",
+  "name": "Lookup member savings balance",
+  "version": 1,
+  "target": {
+    "adapter": "scripted",
+    "entrypoint": "byheart://demo/member-console"
+  },
+  "inputs": {
+    "memberId": {
+      "type": "string",
+      "description": "Member identifier"
+    }
+  },
+  "outputs": {
+    "balance": {
+      "type": "number"
+    }
+  },
+  "steps": [
+    {
+      "id": "search-member",
+      "action": {
+        "kind": "semantic",
+        "name": "member.search",
+        "args": {
+          "memberId": "{{input.memberId}}"
+        }
+      },
+      "knownOutcomes": [
+        {
+          "code": "member_not_found",
+          "when": {
+            "kind": "state_equals",
+            "path": "result",
+            "value": "not_found"
+          }
+        }
+      ],
+      "after": [
+        {
+          "kind": "state_equals",
+          "path": "screen",
+          "value": "detail"
+        }
+      ]
+    }
+  ],
+  "success": [
+    {
+      "kind": "state_equals",
+      "path": "result",
+      "value": "found"
+    }
+  ],
+  "extraction": [
+    {
+      "output": "balance",
+      "fromStatePath": "balance",
+      "as": "number"
+    }
+  ],
+  "policy": {
+    "allowedAdapters": ["scripted"],
+    "allowedActions": ["semantic"],
+    "allowedEntrypoints": ["byheart://demo/member-console"],
+    "consequentialPolicy": "require_human"
+  }
+}
