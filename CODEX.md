@@ -108,6 +108,13 @@ For Preflight/Starsector, the reviewed game adapter uses closed semantic actions
 
 `teach` verifies the declared success condition, compiles the successful external-action trace, parameterizes the supplied concrete values, stores evidence, and exits.
 
+It also writes a sibling durability candidate next to the capability. For example:
+
+```text
+runtime/stage-supplies-order.json
+runtime/stage-supplies-order.candidate.json
+```
+
 Replay uses no model decision loop:
 
 ```bash
@@ -116,6 +123,33 @@ node dist/src/cli.js replay \
   --input market=VES-04 \
   --input quantity=10
 ```
+
+Distinct successful invocations are counted as verification evidence. A real failure moves the candidate to `needs_review` instead of letting success counts hide a compatibility problem.
+
+Once verified:
+
+```bash
+node dist/src/cli.js promote \
+  --candidate runtime/stage-supplies-order.candidate.json
+```
+
+Promotion creates `.byheart/skills/<id>/vN/SKILL.md`, a frozen capability copy, and `.byheart/skills/index.json`. The wrapper tells future Codex runs when to use deterministic replay and when to return to exploration.
+
+## The durability pass
+
+Do this after ordinary successful work too, even when the work did not start in Byheart.
+
+Ask briefly:
+
+1. What did I have to rediscover?
+2. What part could be a command/helper/script instead of repeated reasoning or clicking?
+3. Is there a stable recovery I should encode?
+4. Does this belong as one capability or several composable skills?
+5. What one or two variations would prove the durable form actually generalizes?
+
+If the answer is obvious, make the improvement now. A three-command helper is better than preserving twenty UI steps. A short repository instruction is better than a fake abstraction. If the idea needs proof, leave a candidate and verification recipe instead of pretending it is trusted.
+
+Before doing familiar work from scratch, check `.byheart/skills/index.json` when it exists. Use a verified deterministic skill first; fall back to normal Codex judgment when its compatibility checks stop holding.
 
 For a same-session human intervention demo:
 
