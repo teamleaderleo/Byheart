@@ -47,9 +47,14 @@ node dist/src/cli.js teach \
   --parameter market=ASH-17 \
   --parameter quantity=25 \
   --known-outcome market_not_found="NO SUCH MARKET" \
+  --extract-output 'reference=string:Order reference' \
+  --extract-output 'market=string:Order market' \
+  --extract-output 'quantity=number:Order quantity' \
+  --extract-output 'total_credits=number:Order total credits' \
   --name stage-supplies-order \
-  --output runtime/stage-supplies-order.json \
-  --run-dir evidence/codex-discovery
+  --output evidence/discovery/capability.json \
+  --run-dir evidence/discovery \
+  --headed
 ```
 
 The command prints a local bridge URL such as `http://127.0.0.1:43127` and keeps the same browser/session resident.
@@ -104,6 +109,8 @@ For Preflight/Starsector, the reviewed game adapter uses closed semantic actions
 - Stop and report an undeclared state instead of silently inventing a new privileged action.
 - Keep decision notes short enough to become useful evidence; private reasoning does not belong in the trace.
 
+For the take-home run, the final `ORDER STAGED` view exposes accessible status values named `Order reference`, `Order market`, `Order quantity`, and `Order total credits`. Those become typed capability outputs through the `--extract-output` declarations above; Codex does not need to manufacture them in the trace.
+
 ## After discovery
 
 `teach` verifies the declared success condition, compiles the successful external-action trace, parameterizes the supplied concrete values, stores evidence, and exits.
@@ -111,17 +118,18 @@ For Preflight/Starsector, the reviewed game adapter uses closed semantic actions
 It also writes a sibling durability candidate next to the capability. For example:
 
 ```text
-runtime/stage-supplies-order.json
-runtime/stage-supplies-order.candidate.json
+evidence/discovery/capability.json
+evidence/discovery/capability.candidate.json
 ```
 
 Replay uses no model decision loop:
 
 ```bash
 node dist/src/cli.js replay \
-  --capability runtime/stage-supplies-order.json \
+  --capability evidence/discovery/capability.json \
   --input market=VES-04 \
-  --input quantity=10
+  --input quantity=10 \
+  --run-dir evidence/replay-from-discovery
 ```
 
 Distinct successful invocations are counted as verification evidence. A real failure moves the candidate to `needs_review` instead of letting success counts hide a compatibility problem.
@@ -130,7 +138,7 @@ Once verified:
 
 ```bash
 node dist/src/cli.js promote \
-  --candidate runtime/stage-supplies-order.candidate.json
+  --candidate evidence/discovery/capability.candidate.json
 ```
 
 Promotion creates `.byheart/skills/<id>/vN/SKILL.md`, a frozen capability copy, and `.byheart/skills/index.json`. The wrapper tells future Codex runs when to use deterministic replay and when to return to exploration.
@@ -158,6 +166,7 @@ node dist/src/cli.js replay \
   --capability examples/capabilities/stage-and-submit-order.json \
   --input market=ASH-17 \
   --input quantity=25 \
+  --run-dir evidence/handoff \
   --operator --headed
 ```
 
