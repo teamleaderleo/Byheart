@@ -1,9 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { toJsonObject } from "./json.js";
-import { evaluatePolicy } from "./policy.js";
+import { DiscoverySession } from "./discovery-session.js";
 import type {
-  ActionKind,
-  CapabilityPolicy,
   DecisionModel,
   DiscoveryTrace,
   EvidenceSink,
@@ -13,11 +9,16 @@ import type {
 
 export interface DiscoveryOptions {
   maxSteps?: number;
-  allowedActions: ActionKind[];
+  allowedActions: import("./types.js").ActionKind[];
   consequentialPolicy?: "block" | "require_human" | "allow";
   now?: () => Date;
 }
 
+/**
+ * Convenience runner for a model that implements DecisionModel. The durable
+ * discovery semantics live in DiscoverySession so the same trace/policy path is
+ * used when Codex or another external agent drives the session over the bridge.
+ */
 export class DiscoveryRunner {
   constructor(
     private readonly surface: Surface,
@@ -26,66 +27,30 @@ export class DiscoveryRunner {
   ) {}
 
   async run(goal: string, target: SurfaceTarget, options: DiscoveryOptions): Promise<DiscoveryTrace> {
-    const runId = randomUUID();
-    const now = options.now ?? (() => new Date());
-    const maxSteps = options.maxSteps ?? 30;
-    const trace: DiscoveryTrace = {
-      runId,
-      goal,
-      target,
-      startedAt: now().toISOString(),
-      entries: [],
-    };
+    const session = new DiscoverySession(this.surface, this.evidence, goal, target, {
+      ...options,
+      driverId: this.model.id,
+    });
 
-    const identity = await this.surface.identity();
-    const policy: CapabilityPolicy = {
-      allowedAdapters: [target.adapter],
-      allowedActions: options.allowedActions,
-      ...(target.entrypoint ? { allowedEntrypoints: [target.entrypoint] } : {}),
-      consequentialPolicy: options.consequentialPolicy ?? "require_human",
-    };
-
-    for (let step = 1; step <= maxSteps; step += 1) {
-      const observation = await this.surface.observe();
+    for (let step = 1; step <= (options.maxSteps ?? 30); step += 1) {
+      const observation = await session.observe();
       const decision = await this.model.decide({
         goal,
         target,
         observation,
-        trace: trace.entries,
+        trace: session.trace().entries,
         allowedActions: options.allowedActions,
       });
 
-      await this.evidence.record({
-        at: now().toISOString(),
-        runId,
-        kind: "discovery_decision",
-        data: { step, decision: toJsonObject(decision), model: this.model.id },
-      });
-
-      if (decision.kind === "done") {
-        trace.finishedAt = now().toISOString();
-        trace.finalObservation = observation;
-        return trace;
-      }
+      if (decision.kind === "done") return session.done(decision.note, this.model.id);
       if (decision.kind === "stuck") {
-        throw new Error(`discovery stuck at step ${step}: ${decision.reason}`);
+        await session.stuck(decision.reason, this.model.id);
+        throw new Error("unreachable");
       }
 
-      const policyDecision = evaluatePolicy(policy, identity, decision.action);
-      if (policyDecision.decision !== "allow") {
-        throw new Error(`discovery policy stopped action: ${policyDecision.reason}`);
-      }
-
-      const receipt = await this.surface.act(decision.action);
-      trace.entries.push({
-        step,
-        observation,
-        action: decision.action,
-        receipt,
-        ...(decision.note ? { note: decision.note } : {}),
-      });
+      await session.act(decision.action, decision.note, this.model.id);
     }
 
-    throw new Error(`discovery exceeded maxSteps=${maxSteps}`);
+    throw new Error(`discovery exceeded maxSteps=${options.maxSteps ?? 30}`);
   }
 }
