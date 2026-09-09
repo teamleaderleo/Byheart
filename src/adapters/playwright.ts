@@ -336,17 +336,22 @@ function buildLocator(
   frame: Frame,
   target: Exclude<Locator, { kind: "point" } | { kind: "semantic" }>,
 ): PlaywrightLocator {
-  const exact = target.exact === undefined ? {} : { exact: target.exact };
   switch (target.kind) {
-    case "role":
+    case "role": {
+      const exact = target.exact === undefined ? {} : { exact: target.exact };
       return frame.getByRole(target.role as Parameters<Frame["getByRole"]>[0], {
         name: target.name,
         ...exact,
       });
-    case "label":
+    }
+    case "label": {
+      const exact = target.exact === undefined ? {} : { exact: target.exact };
       return frame.getByLabel(target.label, exact);
-    case "text":
+    }
+    case "text": {
+      const exact = target.exact === undefined ? {} : { exact: target.exact };
       return frame.getByText(target.text, exact);
+    }
     case "selector":
       return frame.locator(target.selector);
   }
