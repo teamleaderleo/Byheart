@@ -53,7 +53,7 @@ Codex is especially useful because it can inspect source, logs, screenshots, ada
 The repository now contains:
 
 - typed `byheart-capability/v1` and result contracts;
-- input validation and parameter templating;
+- input validation, parameter templating, and typed output extraction;
 - deterministic replay without a model in the decision loop;
 - explicit known outcomes versus execution failures;
 - preconditions, postconditions, retries, recoveries, and human-on-failure routing;
@@ -109,22 +109,28 @@ npm run byheart -- teach \
   --parameter market=ASH-17 \
   --parameter quantity=25 \
   --known-outcome "market_not_found=NO SUCH MARKET" \
+  --extract-output 'reference=string:Order reference' \
+  --extract-output 'market=string:Order market' \
+  --extract-output 'quantity=number:Order quantity' \
+  --extract-output 'total_credits=number:Order total credits' \
   --name stage-supplies-order \
-  --output runtime/stage-supplies-order.json \
-  --run-dir evidence/codex-discovery
+  --output evidence/discovery/capability.json \
+  --run-dir evidence/discovery \
+  --headed
 ```
 
 `teach` opens one resident target session and prints a local bridge URL. Give Codex [`CODEX.md`](CODEX.md). Codex reads `/v1/state`, chooses one bounded action at a time, posts it through Byheart, inspects the receipt/new observation, and finishes through `/v1/done` once Byheart independently verifies the declared success condition.
 
-The resulting artifact contains the successful external action trace, parameterized values, provenance, policy, retries/recovery seams, and evidence references.
+The resulting artifact contains the successful external action trace, parameterized values, typed outputs, provenance, policy, retries/recovery seams, and evidence references. The demo exposes the staged reference, market, accepted quantity, and total credits through accessible status targets so replay can return them as typed outputs.
 
 ## Deterministic replay
 
 ```bash
 npm run byheart -- replay \
-  --capability runtime/stage-supplies-order.json \
+  --capability evidence/discovery/capability.json \
   --input market=VES-04 \
   --input quantity=10 \
+  --run-dir evidence/replay-from-discovery \
   --headed
 ```
 
@@ -137,6 +143,17 @@ npm run byheart -- replay \
   --capability examples/capabilities/stage-supplies-order.json \
   --input market=ASH-17 \
   --input quantity=25
+```
+
+A successful ASH-17 / 25-supplies replay returns outputs equivalent to:
+
+```json
+{
+  "reference": "STG-001",
+  "market": "ASH-17",
+  "quantity": 25,
+  "total_credits": 3600
+}
 ```
 
 Try a legitimate domain outcome:
@@ -157,11 +174,24 @@ npm run byheart -- replay \
   --capability examples/capabilities/stage-and-submit-order.json \
   --input market=ASH-17 \
   --input quantity=25 \
+  --run-dir evidence/handoff \
   --operator \
   --headed
 ```
 
 Byheart drives the safe steps to the review screen. The final consequential click pauses automation and opens a tiny operator surface. Use the same live target browser to perform the requested step, then choose **Resume automation**. Replay verifies the postcondition and continues on that same session.
+
+## Submission evidence
+
+The deterministic evidence bundle can be regenerated in one command:
+
+```bash
+npm run evidence:replays
+```
+
+It captures success, typed outputs, a known business outcome, session-expiry recovery, a deliberately broken target, and the consequential-action boundary under `evidence/generated/`.
+
+The genuine model-driven discovery and manual same-session takeover are intentionally separate runs because they are the parts whose provenance matters. Follow [`evidence/README.md`](evidence/README.md) for the exact submission runbook and expected evidence layout.
 
 ## Learned skills and checkpoint search
 
@@ -242,6 +272,7 @@ Turn-based combat and long-horizon company management give clean decision bounda
 
 ## Read next
 
+- [`evidence/README.md`](evidence/README.md) — exact submission evidence runbook.
 - [`CODEX.md`](CODEX.md) — primary discovery workflow for Codex/external agents.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — current technical model.
 - [`ROADMAP.md`](ROADMAP.md) — ambitious implementation/research path.
