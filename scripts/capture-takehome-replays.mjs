@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -28,14 +29,31 @@ try {
   await waitForServer(entrypoint);
 
   const cases = [];
-  cases.push(await runCase("replay-success", stageCapability, { market: "VES-04", quantity: "10" }));
-  cases.push(await runCase("replay-known-outcome", stageCapability, { market: "NOPE-00", quantity: "25" }));
-  cases.push(await runCase(
+
+  const success = await runCase("replay-success", stageCapability, { market: "VES-04", quantity: "10" });
+  assert.equal(success.status, "success");
+  assert.deepEqual(success.outputs, {
+    reference: "STG-001",
+    market: "VES-04",
+    quantity: 10,
+    total_credits: 2120,
+  });
+  cases.push(success);
+
+  const known = await runCase("replay-known-outcome", stageCapability, { market: "NOPE-00", quantity: "25" });
+  assert.equal(known.status, "known_outcome");
+  assert.equal(known.code, "market_not_found");
+  cases.push(known);
+
+  const recovery = await runCase(
     "replay-session-recovery",
     stageCapability,
     { market: "ASH-17", quantity: "25" },
     async (surface) => surface.pageHandle().getByLabel("expire session next action").check(),
-  ));
+  );
+  assert.equal(recovery.status, "success");
+  assert.equal(recovery.outputs?.total_credits, 3600);
+  cases.push(recovery);
 
   const broken = structuredClone(stageCapability);
   const openOrder = broken.steps.find((step) => step.id === "open-order");
@@ -46,13 +64,20 @@ try {
   };
   openOrder.retry = { maxAttempts: 1 };
   openOrder.onFailure = "fail";
-  cases.push(await runCase("replay-hard-failure", broken, { market: "ASH-17", quantity: "25" }));
+  const hardFailure = await runCase("replay-hard-failure", broken, { market: "ASH-17", quantity: "25" });
+  assert.equal(hardFailure.status, "failure");
+  assert.equal(hardFailure.class, "action_failed");
+  assert.equal(hardFailure.stepId, "open-order");
+  cases.push(hardFailure);
 
-  cases.push(await runCase(
+  const intervention = await runCase(
     "replay-consequence-boundary",
     submitCapability,
     { market: "ASH-17", quantity: "25" },
-  ));
+  );
+  assert.equal(intervention.status, "intervention_required");
+  assert.equal(intervention.stepId, "submit-purchase");
+  cases.push(intervention);
 
   const manifest = {
     format: "byheart-takehome-evidence-manifest/v1",
