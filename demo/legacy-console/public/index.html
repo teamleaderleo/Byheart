@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Perihelion Exchange Console</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <table class="shell" role="presentation">
+    <tr>
+      <td class="masthead" colspan="2">
+        <strong>PERIHELION EXCHANGE // OPERATIONS TERMINAL 4.7</strong>
+        <span id="session-state">SESSION ACTIVE</span>
+      </td>
+    </tr>
+    <tr>
+      <td class="sidebar">
+        <div class="nav-label">MODULES</div>
+        <button type="button" onclick="showSearch()">MARKET LOOKUP</button>
+        <button type="button" onclick="showQueue()">STAGED ORDERS</button>
+        <button type="button" onclick="openInterstice()">MESSAGE OF THE DAY</button>
+        <hr>
+        <label><input id="fault-slow" type="checkbox"> inject slow load</label>
+        <label><input id="fault-expired" type="checkbox"> expire session next action</label>
+        <label><input id="fault-dialog" type="checkbox"> surprise dialog next action</label>
+      </td>
+      <td class="workspace">
+        <iframe id="workframe" title="Operations workspace" src="about:blank"></iframe>
+      </td>
+    </tr>
+  </table>
+
+  <dialog id="interstice">
+    <form method="dialog">
+      <h2>Operations notice</h2>
+      <p>Quarterly terminal attestation is due. No action is required for this demonstration.</p>
+      <button>Dismiss</button>
+    </form>
+  </dialog>
+
+  <dialog id="surprise">
+    <form method="dialog">
+      <h2>Unrecognized confirmation</h2>
+      <p>The terminal requested an additional operator decision.</p>
+      <button value="cancel">Cancel</button>
+      <button value="continue">Continue</button>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>
