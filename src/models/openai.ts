@@ -1,0 +1,194 @@
+import type {
+  Action,
+  DecisionModel,
+  JsonObject,
+  Locator,
+  ModelDecision,
+} from "../types.js";
+
+export interface OpenAIDecisionModelOptions {
+  apiKey?: string;
+  model?: string;
+  reasoningEffort?: "none" | "low" | "medium" | "high";
+  baseUrl?: string;
+}
+
+export class OpenAIDecisionModel implements DecisionModel {
+  readonly id: string;
+  private readonly apiKey: string;
+  private readonly model: string;
+  private readonly reasoningEffort: "none" | "low" | "medium" | "high";
+  private readonly baseUrl: string;
+
+  constructor(options: OpenAIDecisionModelOptions = {}) {
+    const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error("OPENAI_API_KEY is required for live discovery");
+    this.apiKey = apiKey;
+    this.model = options.model ?? process.env.BYHEART_MODEL ?? "gpt-5.6-luna";
+    this.reasoningEffort = options.reasoningEffort ?? "low";
+    this.baseUrl = options.baseUrl ?? "https://api.openai.com/v1";
+    this.id = `openai:${this.model}:${this.reasoningEffort}`;
+  }
+
+  async decide(input: Parameters<DecisionModel["decide"]>[0]): Promise<ModelDecision> {
+    const recentTrace = input.trace.slice(-8).map((entry) => ({
+      step: entry.step,
+      action: entry.action,
+      delivered: entry.receipt.delivered,
+      effectObserved: entry.receipt.effectObserved,
+      detail: entry.receipt.detail ?? "",
+    }));
+
+    const response = await fetch(`${this.baseUrl}/responses`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${this.apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.model,
+        reasoning: { effort: this.reasoningEffort },
+        instructions: instructions(input.allowedActions),
+        input: [
+          `GOAL:\n${input.goal}`,
+          `TARGET:\n${JSON.stringify(input.target)}`,
+          `CURRENT OBSERVATION:\n${input.observation.summary}`,
+          `RECENT EXECUTION TRACE:\n${JSON.stringify(recentTrace)}`,
+        ].join("\n\n"),
+        tools: [decisionTool()],
+        tool_choice: "required",
+      }),
+    });
+
+    const body = await response.json() as JsonObject;
+    if (!response.ok) {
+      throw new Error(`OpenAI Responses API failed (${response.status}): ${JSON.stringify(body).slice(0, 2000)}`);
+    }
+
+    const output = Array.isArray(body.output) ? body.output : [];
+    const call = output.find((item) => {
+      return item !== null && typeof item === "object" && !Array.isArray(item)
+        && item.type === "function_call" && item.name === "choose_action";
+    });
+    if (!call || call === null || Array.isArray(call) || typeof call !== "object") {
+      throw new Error(`model returned no choose_action function call: ${JSON.stringify(body).slice(0, 2000)}`);
+    }
+
+    const encoded = call.arguments;
+    if (typeof encoded !== "string") throw new Error("choose_action arguments were missing");
+    const args = JSON.parse(encoded) as Record<string, unknown>;
+    return parseDecision(args);
+  }
+}
+
+function instructions(allowedActions: string[]): string {
+  return [
+    "You are the discovery controller for Byheart. Operate the current UI toward the supplied goal.",
+    "Choose exactly one bounded action at a time. Use semantic targets such as role/name or labels before selectors.",
+    "Treat the observation as current truth. When the goal is visibly complete, return done. If safe progress is impossible, return stuck.",
+    `Allowed action kinds: ${allowedActions.join(", ")}.`,
+    "For click/type/select targets, set targetKind to role, label, text, or selector and fill the matching fields.",
+    "For role targets supply role and name. For label targets supply label. For text targets supply text. Use selector only when semantic targeting is unavailable.",
+    "Do not invent hidden state. Do not choose irreversible submission unless the goal explicitly requires it and policy permits it.",
+  ].join("\n");
+}
+
+function decisionTool(): JsonObject {
+  return {
+    type: "function",
+    name: "choose_action",
+    description: "Choose the next bounded computer-use action, finish, or report that progress is blocked.",
+    strict: true,
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        decision: { type: "string", enum: ["act", "done", "stuck"] },
+        actionKind: { type: ["string", "null"], enum: ["navigate", "click", "type", "select", "wait", null] },
+        targetKind: { type: ["string", "null"], enum: ["role", "label", "text", "selector", null] },
+        role: { type: ["string", "null"] },
+        name: { type: ["string", "null"] },
+        label: { type: ["string", "null"] },
+        text: { type: ["string", "null"] },
+        selector: { type: ["string", "null"] },
+        value: { type: ["string", "null"] },
+        url: { type: ["string", "null"] },
+        waitText: { type: ["string", "null"] },
+        timeoutMs: { type: ["number", "null"] },
+        note: { type: ["string", "null"] },
+        reason: { type: ["string", "null"] },
+      },
+      required: [
+        "decision", "actionKind", "targetKind", "role", "name", "label", "text", "selector",
+        "value", "url", "waitText", "timeoutMs", "note", "reason"
+      ],
+    },
+  };
+}
+
+function parseDecision(args: Record<string, unknown>): ModelDecision {
+  const decision = string(args.decision, "decision");
+  const note = optionalString(args.note);
+  if (decision === "done") return { kind: "done", ...(note ? { note } : {}) };
+  if (decision === "stuck") {
+    return { kind: "stuck", reason: optionalString(args.reason) ?? "model reported that safe progress was blocked" };
+  }
+  if (decision !== "act") throw new Error(`unknown decision ${decision}`);
+
+  const kind = string(args.actionKind, "actionKind");
+  let action: Action;
+  switch (kind) {
+    case "navigate":
+      action = { kind: "navigate", url: string(args.url, "url") };
+      break;
+    case "click":
+      action = { kind: "click", target: parseTarget(args) };
+      break;
+    case "type":
+      action = { kind: "type", target: parseTarget(args), text: string(args.value, "value") };
+      break;
+    case "select":
+      action = { kind: "select", target: parseTarget(args), value: string(args.value, "value") };
+      break;
+    case "wait":
+      action = {
+        kind: "wait",
+        condition: { kind: "text_present", text: string(args.waitText, "waitText") },
+        timeoutMs: number(args.timeoutMs, "timeoutMs", 5000),
+      };
+      break;
+    default:
+      throw new Error(`unsupported model actionKind ${kind}`);
+  }
+  return { kind: "act", action, ...(note ? { note } : {}) };
+}
+
+function parseTarget(args: Record<string, unknown>): Locator {
+  switch (string(args.targetKind, "targetKind")) {
+    case "role":
+      return { kind: "role", role: string(args.role, "role"), name: string(args.name, "name") };
+    case "label":
+      return { kind: "label", label: string(args.label, "label") };
+    case "text":
+      return { kind: "text", text: string(args.text, "text") };
+    case "selector":
+      return { kind: "selector", selector: string(args.selector, "selector"), rationale: "selected during model discovery" };
+    default:
+      throw new Error("unsupported targetKind");
+  }
+}
+
+function string(value: unknown, name: string): string {
+  if (typeof value !== "string" || value.length === 0) throw new Error(`${name} must be a non-empty string`);
+  return value;
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function number(value: unknown, name: string, fallback: number): number {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`${name} must be a finite number`);
+  return value;
+}

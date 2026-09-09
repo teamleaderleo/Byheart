@@ -123,6 +123,7 @@ export interface CapabilityStep {
   knownOutcomes?: KnownOutcomeRule[];
   recoveries?: RecoveryRule[];
   retry?: RetryPolicy;
+  onFailure?: "fail" | "human";
 }
 
 export interface CapabilityPolicy {

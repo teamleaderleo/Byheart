@@ -1,0 +1,143 @@
+{
+  "format": "byheart-capability/v1",
+  "id": "perihelion.stage-supply-order",
+  "name": "Stage a supply order",
+  "version": 1,
+  "description": "Look up a market, stage a supplies purchase, and stop before the consequential submission boundary.",
+  "target": {
+    "adapter": "browser",
+    "entrypoint": "http://127.0.0.1:4173"
+  },
+  "inputs": {
+    "market": { "type": "string" },
+    "quantity": { "type": "string" }
+  },
+  "outputs": {},
+  "steps": [
+    {
+      "id": "enter-market",
+      "action": {
+        "kind": "type",
+        "target": { "kind": "label", "label": "Market code" },
+        "text": "{{input.market}}"
+      }
+    },
+    {
+      "id": "search-market",
+      "action": {
+        "kind": "click",
+        "target": { "kind": "role", "role": "button", "name": "Search" }
+      }
+    },
+    {
+      "id": "wait-market",
+      "action": {
+        "kind": "wait",
+        "condition": { "kind": "text_present", "text": "MARKET RECORD" },
+        "timeoutMs": 2500
+      },
+      "after": [
+        { "kind": "text_present", "text": "MARKET RECORD" }
+      ],
+      "knownOutcomes": [
+        {
+          "code": "market_not_found",
+          "when": { "kind": "text_present", "text": "NO SUCH MARKET" },
+          "detail": "The supplied market code is a legitimate missing-record outcome."
+        }
+      ],
+      "recoveries": [
+        {
+          "when": { "kind": "text_present", "text": "Session expired" },
+          "actions": [
+            {
+              "kind": "click",
+              "target": { "kind": "role", "role": "button", "name": "Re-authenticate" }
+            },
+            {
+              "kind": "type",
+              "target": { "kind": "label", "label": "Market code" },
+              "text": "{{input.market}}"
+            },
+            {
+              "kind": "click",
+              "target": { "kind": "role", "role": "button", "name": "Search" }
+            }
+          ]
+        }
+      ],
+      "retry": { "maxAttempts": 2, "backoffMs": 100 },
+      "onFailure": "human"
+    },
+    {
+      "id": "open-order",
+      "action": {
+        "kind": "click",
+        "target": { "kind": "role", "role": "button", "name": "Stage purchase order" }
+      },
+      "onFailure": "human"
+    },
+    {
+      "id": "choose-supplies",
+      "action": {
+        "kind": "select",
+        "target": { "kind": "label", "label": "Commodity" },
+        "value": "supplies"
+      }
+    },
+    {
+      "id": "enter-quantity",
+      "action": {
+        "kind": "type",
+        "target": { "kind": "label", "label": "Quantity" },
+        "text": "{{input.quantity}}"
+      }
+    },
+    {
+      "id": "review-order",
+      "action": {
+        "kind": "click",
+        "target": { "kind": "role", "role": "button", "name": "Review order" }
+      }
+    },
+    {
+      "id": "wait-review",
+      "action": {
+        "kind": "wait",
+        "condition": { "kind": "text_present", "text": "ORDER REVIEW" },
+        "timeoutMs": 2500
+      },
+      "after": [
+        { "kind": "text_present", "text": "ORDER REVIEW" }
+      ],
+      "onFailure": "human"
+    },
+    {
+      "id": "stage-order",
+      "action": {
+        "kind": "click",
+        "target": { "kind": "role", "role": "button", "name": "Stage without submitting" }
+      }
+    },
+    {
+      "id": "wait-staged",
+      "action": {
+        "kind": "wait",
+        "condition": { "kind": "text_present", "text": "ORDER STAGED" },
+        "timeoutMs": 2500
+      },
+      "after": [
+        { "kind": "text_present", "text": "ORDER STAGED" }
+      ]
+    }
+  ],
+  "success": [
+    { "kind": "text_present", "text": "ORDER STAGED" }
+  ],
+  "policy": {
+    "allowedAdapters": ["browser"],
+    "allowedActions": ["click", "type", "select", "wait"],
+    "allowedEntrypoints": ["http://127.0.0.1:4173"],
+    "consequentialPolicy": "require_human"
+  }
+}
