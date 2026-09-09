@@ -14,18 +14,32 @@ import type {
   KnownOutcomeResult,
   ReplayResult,
   Surface,
+  SurfaceIdentity,
 } from "./types.js";
+
+export interface InterventionContext {
+  runId: string;
+  capability: Capability;
+  step: CapabilityStep;
+  reason: string;
+  session: SurfaceIdentity;
+  surface: Surface;
+}
+
+export type InterventionDisposition = "resume" | "abort";
 
 export interface ReplayOptions {
   runId?: string;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
+  interventionHandler?: (context: InterventionContext) => Promise<InterventionDisposition>;
 }
 
 export class ReplayEngine {
   private readonly runId: string;
   private readonly now: () => Date;
   private readonly sleep: (ms: number) => Promise<void>;
+  private readonly interventionHandler?: ReplayOptions["interventionHandler"];
   private readonly ownership: OwnershipController;
   private startedAt = "";
 
@@ -37,6 +51,7 @@ export class ReplayEngine {
     this.runId = options.runId ?? randomUUID();
     this.now = options.now ?? (() => new Date());
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    this.interventionHandler = options.interventionHandler;
     this.ownership = new OwnershipController(surface);
   }
 
@@ -151,28 +166,9 @@ export class ReplayEngine {
       return this.failure(capability, "policy_denied", policy.reason, step.id);
     }
     if (policy.decision === "require_human") {
-      await this.ownership.pauseForReview();
-      await this.evidence.record({
-        at: this.timestamp(),
-        runId: this.runId,
-        kind: "human_handoff",
-        data: { stepId: step.id, reason: policy.reason, ownership: this.ownership.state() },
-      });
-      const result: ReplayResult = {
-        status: "intervention_required",
-        runId: this.runId,
-        capabilityId: capability.id,
-        capabilityVersion: capability.version,
-        startedAt: this.startedAt,
-        finishedAt: this.timestamp(),
-        reason: policy.reason,
-        stepId: step.id,
-        ownership: this.ownership.state(),
-        session: identity,
-        evidence: this.evidence.refs(),
-      };
-      await this.finish(result);
-      return result;
+      const intervention = await this.intervene(capability, step, policy.reason);
+      if (intervention !== "resume") return intervention;
+      return this.verifyHumanEffect(capability, step);
     }
 
     const attempts = Math.max(1, step.retry?.maxAttempts ?? 1);
@@ -203,14 +199,127 @@ export class ReplayEngine {
 
       lastFailure = receipt.detail ?? lastFailure;
       const recovered = await this.tryRecovery(capability, step);
-      if (recovered instanceof Object && "status" in recovered) return recovered;
+      if (typeof recovered === "object" && "status" in recovered) return recovered;
 
       if (attempt < attempts) {
         await this.sleep(step.retry?.backoffMs ?? 0);
       }
     }
 
+    if (step.onFailure === "human") {
+      const intervention = await this.intervene(capability, step, lastFailure);
+      if (intervention !== "resume") return intervention;
+      return this.verifyHumanEffect(capability, step);
+    }
+
     return this.failure(capability, "action_failed", lastFailure, step.id);
+  }
+
+  private async verifyHumanEffect(
+    capability: Capability,
+    step: CapabilityStep,
+  ): Promise<ReplayResult | undefined> {
+    const checks = await this.checkAll(`${step.id}:after-human`, step.after ?? []);
+    if (checks.every((check) => check.passed)) return undefined;
+    return this.failure(
+      capability,
+      "checkpoint_failed",
+      "human handed the live session back, but the step postcondition still failed",
+      step.id,
+    );
+  }
+
+  private async intervene(
+    capability: Capability,
+    step: CapabilityStep,
+    reason: string,
+  ): Promise<ReplayResult | "resume"> {
+    const identity = await this.surface.identity();
+    await this.ownership.pauseForReview();
+    await this.evidence.record({
+      at: this.timestamp(),
+      runId: this.runId,
+      kind: "human_handoff",
+      data: {
+        stepId: step.id,
+        reason,
+        phase: "paused_for_review",
+        ownership: this.ownership.state(),
+        sessionId: identity.sessionId,
+      },
+    });
+
+    if (!this.interventionHandler) {
+      const result = this.interventionResult(capability, step, identity, reason);
+      await this.finish(result);
+      return result;
+    }
+
+    await this.ownership.giveToHuman();
+    await this.evidence.record({
+      at: this.timestamp(),
+      runId: this.runId,
+      kind: "human_handoff",
+      data: {
+        stepId: step.id,
+        reason,
+        phase: "human_owned",
+        ownership: this.ownership.state(),
+        sessionId: identity.sessionId,
+      },
+    });
+
+    const disposition = await this.interventionHandler({
+      runId: this.runId,
+      capability,
+      step,
+      reason,
+      session: identity,
+      surface: this.surface,
+    });
+
+    if (disposition === "abort") {
+      const result = this.interventionResult(capability, step, identity, reason);
+      await this.finish(result);
+      return result;
+    }
+
+    await this.ownership.requestReturn();
+    await this.ownership.resumeAutomation();
+    await this.evidence.record({
+      at: this.timestamp(),
+      runId: this.runId,
+      kind: "human_handoff",
+      data: {
+        stepId: step.id,
+        reason,
+        phase: "automation_resumed",
+        ownership: this.ownership.state(),
+        sessionId: identity.sessionId,
+      },
+    });
+    return "resume";
+  }
+
+  private interventionResult(
+    capability: Capability,
+    step: CapabilityStep,
+    identity: SurfaceIdentity,
+    reason: string,
+  ): Extract<ReplayResult, { status: "intervention_required" }> {
+    return {
+      status: "intervention_required",
+      runId: this.runId,
+      capabilityId: capability.id,
+      capabilityVersion: capability.version,
+      startedAt: this.startedAt,
+      finishedAt: this.timestamp(),
+      reason,
+      stepId: step.id,
+      ownership: this.ownership.state(),
+      session: identity,
+      evidence: this.evidence.refs(),
+    };
   }
 
   private async matchKnownOutcome(
@@ -262,22 +371,13 @@ export class ReplayEngine {
           return this.failure(capability, "policy_denied", policy.reason, step.id);
         }
         if (policy.decision === "require_human") {
-          await this.ownership.pauseForReview();
-          const result: ReplayResult = {
-            status: "intervention_required",
-            runId: this.runId,
-            capabilityId: capability.id,
-            capabilityVersion: capability.version,
-            startedAt: this.startedAt,
-            finishedAt: this.timestamp(),
-            reason: policy.reason,
-            stepId: step.id,
-            ownership: this.ownership.state(),
-            session: identity,
-            evidence: this.evidence.refs(),
-          };
-          await this.finish(result);
-          return result;
+          const intervention = await this.intervene(
+            capability,
+            step,
+            `recovery action requires human approval: ${policy.reason}`,
+          );
+          if (intervention !== "resume") return intervention;
+          continue;
         }
         await this.surface.act(action);
       }
