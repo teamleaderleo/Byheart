@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import { DiscoveryBridge } from "./bridge.js";
 import { compileTrace } from "./compiler.js";
 import { DiscoveryRunner } from "./discovery.js";
+import { DiscoverySession } from "./discovery-session.js";
 import { FileEvidenceSink } from "./evidence-file.js";
 import { OpenAIDecisionModel } from "./models/openai.js";
 import { OperatorGate } from "./operator.js";
@@ -10,6 +12,8 @@ import { PlaywrightSurface } from "./adapters/playwright.js";
 import { ReplayEngine } from "./replay.js";
 import type {
   Capability,
+  Condition,
+  DiscoveryTrace,
   JsonPrimitive,
   JsonValue,
   KnownOutcomeRule,
@@ -21,7 +25,10 @@ const [command, ...argv] = process.argv.slice(2);
 try {
   switch (command) {
     case "teach":
-      await teach(argv);
+      await teachExternal(argv);
+      break;
+    case "teach-api":
+      await teachApi(argv);
       break;
     case "replay":
       await replay(argv);
@@ -40,27 +47,68 @@ try {
   process.exitCode = 1;
 }
 
-async function teach(argv: string[]): Promise<void> {
+async function teachExternal(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
-  const url = required(args, "url");
-  const goal = required(args, "goal");
-  const successText = required(args, "success-text");
-  const name = args.first("name") ?? "learned-capability";
-  const id = args.first("id") ?? slug(name);
-  const output = resolve(args.first("output") ?? `runtime/${id}.json`);
-  const runDirectory = resolve(args.first("run-dir") ?? `runtime/discovery-${Date.now()}`);
-  const headed = args.has("headed");
-  const parameters = parseAssignments(args.all("parameter"));
-  const knownOutcomes = parseKnownOutcomes(args.all("known-outcome"));
+  const config = teachConfig(args);
+  const driverId = args.first("driver") ?? "codex";
 
-  await mkdir(runDirectory, { recursive: true });
-  await mkdir(resolve(output, ".."), { recursive: true });
+  await mkdir(config.runDirectory, { recursive: true });
+  await mkdir(resolve(config.output, ".."), { recursive: true });
 
-  const evidence = new FileEvidenceSink(runDirectory, "discovery.jsonl");
+  const evidence = new FileEvidenceSink(config.runDirectory, "discovery.jsonl");
   const surface = await PlaywrightSurface.launch({
-    entrypoint: url,
-    headless: !headed,
-    artifactDir: resolve(runDirectory, "screenshots"),
+    entrypoint: config.url,
+    headless: !config.headed,
+    artifactDir: resolve(config.runDirectory, "screenshots"),
+  });
+  const success: Condition[] = [{ kind: "text_present", text: config.successText }];
+  const allowedEntrypoints = browserEntrypoints(config.url);
+  const session = new DiscoverySession(
+    surface,
+    evidence,
+    config.goal,
+    { adapter: "browser", entrypoint: config.url },
+    {
+      maxSteps: config.maxSteps,
+      allowedActions: ["navigate", "click", "type", "select", "read", "wait"],
+      allowedEntrypoints,
+      consequentialPolicy: "require_human",
+      driverId,
+    },
+  );
+  const bridge = new DiscoveryBridge({ session, success, driverId });
+
+  try {
+    await bridge.start();
+    console.log(`Byheart discovery bridge: ${bridge.url()}`);
+    console.log(`Driver: ${driverId}`);
+    console.log("Give the agent CODEX.md or have it GET /v1/state, POST one action at a time to /v1/action, and POST /v1/done only after the declared success condition is visible.");
+    console.log(`Run evidence: ${config.runDirectory}`);
+
+    const trace = await bridge.waitForCompletion();
+    const capability = compileLearnedCapability(trace, config, driverId, evidence.refs().map((item) => item.uri), allowedEntrypoints);
+    await writeLearnedArtifacts(surface, trace, capability, config);
+
+    console.log(`Learned ${capability.name}`);
+    console.log(`Artifact: ${config.output}`);
+    console.log(`Actions compiled: ${capability.steps.length}`);
+  } finally {
+    await bridge.close();
+    await surface.close();
+  }
+}
+
+async function teachApi(argv: string[]): Promise<void> {
+  const args = parseArgs(argv);
+  const config = teachConfig(args);
+  await mkdir(config.runDirectory, { recursive: true });
+  await mkdir(resolve(config.output, ".."), { recursive: true });
+
+  const evidence = new FileEvidenceSink(config.runDirectory, "discovery.jsonl");
+  const surface = await PlaywrightSurface.launch({
+    entrypoint: config.url,
+    headless: !config.headed,
+    artifactDir: resolve(config.runDirectory, "screenshots"),
   });
 
   try {
@@ -69,45 +117,24 @@ async function teach(argv: string[]): Promise<void> {
       reasoningEffort: (args.first("reasoning") as "none" | "low" | "medium" | "high" | undefined) ?? "low",
     });
     const runner = new DiscoveryRunner(surface, model, evidence);
-    const trace = await runner.run(goal, { adapter: "browser", entrypoint: url }, {
-      maxSteps: Number(args.first("max-steps") ?? 30),
-      allowedActions: ["navigate", "click", "type", "select", "wait"],
+    const trace = await runner.run(config.goal, { adapter: "browser", entrypoint: config.url }, {
+      maxSteps: config.maxSteps,
+      allowedActions: ["navigate", "click", "type", "select", "read", "wait"],
       consequentialPolicy: "require_human",
     });
-
-    const inputSchemas: Record<string, ValueSchema> = Object.fromEntries(
-      Object.keys(parameters).map((parameter) => [parameter, { type: "string" }]),
+    const allowedEntrypoints = browserEntrypoints(config.url);
+    const capability = compileLearnedCapability(
+      trace,
+      config,
+      model.id,
+      evidence.refs().map((item) => item.uri),
+      allowedEntrypoints,
     );
-    const parameterize: Record<string, JsonPrimitive> = parameters;
-    const capability = compileTrace(trace, {
-      id,
-      name,
-      description: goal,
-      inputs: inputSchemas,
-      outputs: {},
-      success: [{ kind: "text_present", text: successText }],
-      parameterize,
-      model: model.id,
-      policy: {
-        allowedAdapters: ["browser"],
-        allowedEntrypoints: [url],
-        consequentialPolicy: "require_human",
-      },
-    });
-
-    hardenCompiledCapability(capability, knownOutcomes);
-    capability.provenance = {
-      ...capability.provenance,
-      evidence: evidence.refs().map((item) => item.uri),
-    };
-
-    await writeFile(output, JSON.stringify(capability, null, 2) + "\n", "utf8");
-    await writeFile(resolve(runDirectory, "trace.json"), JSON.stringify(trace, null, 2) + "\n", "utf8");
-    await surface.captureEvidence?.("discovery-final");
+    await writeLearnedArtifacts(surface, trace, capability, config);
 
     console.log(`Learned ${capability.name}`);
-    console.log(`Artifact: ${output}`);
-    console.log(`Evidence: ${runDirectory}`);
+    console.log(`Artifact: ${config.output}`);
+    console.log(`Evidence: ${config.runDirectory}`);
     console.log(`Actions compiled: ${capability.steps.length}`);
   } finally {
     await surface.close();
@@ -149,6 +176,86 @@ async function replay(argv: string[]): Promise<void> {
     await operator?.close();
     await surface.close();
   }
+}
+
+interface TeachConfig {
+  url: string;
+  goal: string;
+  successText: string;
+  name: string;
+  id: string;
+  output: string;
+  runDirectory: string;
+  headed: boolean;
+  maxSteps: number;
+  parameters: Record<string, string>;
+  knownOutcomes: KnownOutcomeRule[];
+}
+
+function teachConfig(args: ParsedArgs): TeachConfig {
+  const url = required(args, "url");
+  const goal = required(args, "goal");
+  const successText = required(args, "success-text");
+  const name = args.first("name") ?? "learned-capability";
+  const id = args.first("id") ?? slug(name);
+  return {
+    url,
+    goal,
+    successText,
+    name,
+    id,
+    output: resolve(args.first("output") ?? `runtime/${id}.json`),
+    runDirectory: resolve(args.first("run-dir") ?? `runtime/discovery-${Date.now()}`),
+    headed: args.has("headed"),
+    maxSteps: Number(args.first("max-steps") ?? 30),
+    parameters: parseAssignments(args.all("parameter")),
+    knownOutcomes: parseKnownOutcomes(args.all("known-outcome")),
+  };
+}
+
+function compileLearnedCapability(
+  trace: DiscoveryTrace,
+  config: TeachConfig,
+  driverId: string,
+  evidenceUris: string[],
+  allowedEntrypoints: string[],
+): Capability {
+  const inputSchemas: Record<string, ValueSchema> = Object.fromEntries(
+    Object.keys(config.parameters).map((parameter) => [parameter, { type: "string" }]),
+  );
+  const parameterize: Record<string, JsonPrimitive> = config.parameters;
+  const capability = compileTrace(trace, {
+    id: config.id,
+    name: config.name,
+    description: config.goal,
+    inputs: inputSchemas,
+    outputs: {},
+    success: [{ kind: "text_present", text: config.successText }],
+    parameterize,
+    model: driverId,
+    policy: {
+      allowedAdapters: ["browser"],
+      allowedEntrypoints,
+      consequentialPolicy: "require_human",
+    },
+  });
+  hardenCompiledCapability(capability, config.knownOutcomes);
+  capability.provenance = {
+    ...capability.provenance,
+    evidence: evidenceUris,
+  };
+  return capability;
+}
+
+async function writeLearnedArtifacts(
+  surface: PlaywrightSurface,
+  trace: DiscoveryTrace,
+  capability: Capability,
+  config: TeachConfig,
+): Promise<void> {
+  await writeFile(config.output, JSON.stringify(capability, null, 2) + "\n", "utf8");
+  await writeFile(resolve(config.runDirectory, "trace.json"), JSON.stringify(trace, null, 2) + "\n", "utf8");
+  await surface.captureEvidence?.("discovery-final");
 }
 
 function hardenCompiledCapability(capability: Capability, knownOutcomes: KnownOutcomeRule[]): void {
@@ -193,6 +300,16 @@ function parseAssignments(values: string[]): Record<string, string> {
   }));
 }
 
+function browserEntrypoints(url: string): string[] {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return [`${parsed.origin}/*`];
+  } catch {
+    // Non-URL adapter entrypoints stay exact.
+  }
+  return [url];
+}
+
 interface ParsedArgs {
   first(name: string): string | undefined;
   all(name: string): string[];
@@ -231,7 +348,7 @@ function slug(value: string): string {
 }
 
 function usage(): void {
-  console.log(`Byheart\n\nTeach a browser task:\n  node dist/src/cli.js teach --url http://127.0.0.1:4173 --goal "..." --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --output runtime/stage-order.json\n\nReplay a saved capability:\n  node dist/src/cli.js replay --capability runtime/stage-order.json --input market=VES-04 --input quantity=10 --operator --headed\n\nCommon teach options:\n  --model <model> --reasoning low --max-steps 30 --known-outcome market_not_found=NO SUCH MARKET --headed\n`);
+  console.log(`Byheart\n\nPrimary discovery path (Codex/external agent):\n  node dist/src/cli.js teach --url http://127.0.0.1:4173 --goal "Stage an order for 25 supplies at ASH-17" --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --output runtime/stage-order.json\n\nThe command keeps one live browser resident and prints a local discovery bridge. Give Codex CODEX.md, or have any external agent drive GET /v1/state -> POST /v1/action until POST /v1/done succeeds. No API key is required.\n\nDeterministic replay:\n  node dist/src/cli.js replay --capability runtime/stage-order.json --input market=VES-04 --input quantity=10 --operator --headed\n\nOptional self-contained API discovery:\n  node dist/src/cli.js teach-api --url http://127.0.0.1:4173 --goal "..." --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --model <model>\n\nCommon teach options:\n  --driver codex --max-steps 30 --known-outcome market_not_found=NO SUCH MARKET --headed\n`);
 }
 
 void ({} as Record<string, JsonValue>);
