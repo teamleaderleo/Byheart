@@ -1,10 +1,10 @@
 # Byheart roadmap
 
-This roadmap is intentionally ambitious. The first delivery still needs a clean vertical slice.
+This roadmap is intentionally ambitious. The interview submission remains a clean browser slice; the project can go considerably further afterward.
 
 ## Phase 0 — executable core
 
-Status: foundation implemented.
+Status: implemented.
 
 - capability schema;
 - input validation and templating;
@@ -19,26 +19,53 @@ Status: foundation implemented.
 - trace compiler;
 - scripted adapter and tests.
 
-Exit: `npm test` passes and `npm run demo` produces a successful replay with evidence.
+## Phase 1 — browser take-home slice
 
-## Phase 1 — take-home vertical slice
+Status: implemented except for retaining one final real discovery evidence run for submission.
 
-Build the complete assignment thread:
+- local legacy-style browser target;
+- Playwright surface adapter;
+- cross-frame semantic targeting;
+- model/agent observe → decide → act discovery;
+- successful-trace compilation;
+- deterministic replay with parameters;
+- known domain outcome;
+- recoverable runtime condition;
+- hard failure evidence;
+- consequential action routed to human;
+- same-session operator takeover/resume;
+- exact seven-heading report.
 
-1. local legacy-style browser target;
-2. Playwright surface adapter;
-3. real LLM observe/decide/act loop;
-4. compile successful trace into capability artifact;
-5. deterministic replay with parameters and output extraction;
-6. one known business outcome;
-7. one recoverable runtime condition;
-8. one hard failure with screenshot/trace;
-9. consequential action routed to human;
-10. minimal same-session operator takeover;
-11. `/evidence/` populated from real discovery and replay runs;
-12. `REPORT.md` completed under the exact seven required headings.
+Exit: one teach run, one replay run, one exceptional replay, and retained evidence.
 
-Exit: one command teaches; one command replays; one command demonstrates an exceptional outcome.
+## Phase 1.5 — Codex-first resident discovery
+
+Status: implemented as the preferred discovery path.
+
+Byheart owns a resident live session and a tiny local protocol. Codex owns judgment.
+
+```text
+GET  /v1/state
+POST /v1/action
+POST /v1/done
+POST /v1/stuck
+```
+
+Goals:
+
+- remove API credentials from the normal project path;
+- keep model/provider choice outside the capability engine;
+- let Codex inspect repository source and runtime evidence while teaching;
+- make ChatGPT computer use, local models, humans, and future agents interchangeable discovery drivers;
+- preserve one action/receipt/observation chain no matter which agent chose the action.
+
+Next improvements:
+
+- MCP wrapper over the same discovery session;
+- richer screenshot/image handoff for pixel-first agents;
+- explicit capability proposal/review before promotion;
+- external-agent identity/version in provenance;
+- session attach/reconnect after an agent restart.
 
 ## Phase 2 — capability quality
 
@@ -48,103 +75,154 @@ Exit: one command teaches; one command replays; one command demonstrates an exce
 - N-run stability score;
 - execution receipts bound to artifact/version/surface identity;
 - artifact diff/review UI;
-- bounded LLM single-step recovery;
+- bounded single-step recovery by an external reasoning agent;
 - compiler that discovers parameter candidates from repeated traces;
-- capability composition.
+- capability composition;
+- capability retirement when replay evidence degrades;
+- counterexample/failure corpus attached to each capability family.
 
 ## Phase 3 — remote desktop
 
-Implement a real remote surface against the existing VM setup.
+Status: adapter contract and HTTP transport implemented; real environment hookup remains.
 
-- screenshot stream;
+The remote surface uses one exact session identity plus frame and input operations. It is the lowest-common-denominator path into native software and VMs.
+
+Next:
+
+- connect the existing x86 Linux desktop path;
+- connect the Windows VM / Moonlight path;
 - pointer movement/click/drag;
-- keyboard/text input;
-- exact remote session identity;
-- resolution/coordinate-space metadata;
-- pause/takeover/resume;
-- evidence frames;
-- optional guest helper for semantic state/actions.
+- keyboard/text/hotkeys;
+- exact resolution and scale metadata;
+- screenshot evidence;
+- operator takeover on the same remote session;
+- optional guest helper for semantic observations/actions;
+- detect session/resolution changes and fail closed;
+- prove one native workflow with no DOM.
 
-Test targets:
-
-- x86 Linux desktop;
-- Windows VM;
-- Moonlight session;
-- one ordinary native app;
-- one awkward application where accessibility is weak.
-
-Exit: teach and replay a useful native/VM workflow with no browser DOM.
+Useful future refinement: keep the visual channel active even when a guest helper exists. Semantic state can be incomplete; pixels are an independent witness.
 
 ## Phase 4 — Preflight / Starsector
 
-Treat Preflight as the lower game-control layer and Byheart as the planner/skill layer.
+Status: Byheart adapter for Preflight's existing runtime state + closed action protocol implemented; broader gameplay action catalog remains in Preflight.
 
-First capabilities:
+Responsibility split:
+
+```text
+Preflight
+  exact game/process/save/profile identity
+  reviewed in-JVM semantic actions
+  telemetry / checkpoints / containment
+
+Byheart
+  agent-facing observations
+  learned UI procedures
+  planning
+  short-horizon skills
+  checkpoint search
+  capability compilation
+```
+
+First useful capabilities:
 
 - continue/load exact checkpoint copy;
-- open/close major campaign UI surfaces;
 - pause/resume/time-step;
-- set destination;
+- open/close major campaign UI surfaces;
+- set/correct destination;
 - interact with market/fleet;
 - toggle reviewed abilities;
 - trade-screen procedures;
 - safe save/quit/reset.
 
-Observation bundle:
+Observation bundle to grow toward:
 
 - screenshot;
 - exact game/process/save/profile identity;
-- campaign location;
+- campaign location and destination;
 - credits/cargo/fuel/supplies;
-- nearby fleets and sensor facts;
+- nearby fleets, burn, sensor profile/strength, and detection state;
 - current dialog/surface;
-- destination and movement state;
-- relevant ability availability.
+- ability availability;
+- relevant market/opportunity facts.
 
 First research experiments:
 
 1. teach/replay one market interaction;
-2. checkpointed route to a destination;
-3. patrol-evasion in pause/resume increments;
+2. travel to a destination in pause/resume increments;
+3. patrol evasion with short replanning windows;
 4. compare several escape plans from one checkpoint;
 5. simple smuggling trip;
-6. planner chooses between immediate profit and strategic acquisition.
+6. combine trade + mission + acquisition opportunities on one route;
+7. planner chooses between immediate profit and a strategically valuable blueprint/hullmod/hull;
+8. measure how many strong-agent decisions disappear as capabilities accumulate.
 
-Exit: Byheart can complete a small campaign objective and retain at least one learned procedure.
+Combat can initially lean on Starsector autopilot. The campaign layer already contains rich decisions and real UI work.
 
-## Phase 5 — deterministic game advisor
+## Phase 5 — deterministic Starsector advisor
 
-Build read-only mathematical helpers that reduce model burden.
+Build read-only mathematical helpers that reduce agent burden.
 
 Candidate calculations:
 
-- market margin;
+- market margin and net trip profit;
 - cargo/fuel/supply feasibility;
 - travel cost and deadline slack;
 - route overlap among missions/opportunities;
 - acquisition detour cost;
 - sensor/interception geometry;
+- patrol escape feasibility;
 - fleet-strength estimates;
 - expected replacement/refit cost;
-- strategic-option tags for rare blueprints/hulls/weapons.
+- rarity and strategic-option tags for blueprints/hulls/weapons;
+- Pareto frontier across money/time/risk/strategic value.
 
-Feed the planner a ranked frontier instead of raw tables.
-
-Exit: the model spends most calls on strategic ambiguity, not arithmetic or clerical UI work.
+Feed the planner a small ranked opportunity frontier while preserving exact source facts underneath it.
 
 ## Phase 6 — checkpoint search and policy distillation
+
+This is where Byheart starts short-circuiting primitive reinforcement learning.
 
 - fork several plans from one checkpoint;
 - score hard outcomes;
 - let a strong model judge strategic residue;
 - retain traces and causal differences;
-- promote recurring successful decisions into heuristics;
+- promote recurring successful decisions into explicit heuristics;
 - promote routine heuristics into deterministic evaluators;
-- keep provenance from rule back to runs.
+- keep provenance from rule back to runs;
+- use learned capabilities as the action space for later search/RL;
+- compare large-model, small-model, heuristic, and deterministic control at the same decision boundary.
 
-Exit: repeated play measurably reduces strong-model intervention per accepted objective.
+A useful progression:
 
-## Phase 7 — Battle Brothers
+```text
+strong agent reasons from scratch
+        ↓
+strong agent invokes learned skills
+        ↓
+cheaper agent selects among skills
+        ↓
+deterministic evaluator handles routine cases
+        ↓
+strong agent sees only novelty / conflict / strategic ambiguity
+```
+
+Exit: repeated play measurably reduces strong-agent intervention per accepted objective.
+
+## Phase 7 — event-driven campaign control
+
+Treat pause and time progression as first-class actions.
+
+- pause;
+- resume for a bounded interval;
+- resume until a semantic trigger;
+- normal/double speed where appropriate;
+- pause when interception margin drops;
+- pause on new hostile, dialog, destination change, low resource threshold, or valuable event;
+- compile successful short-horizon movement procedures.
+
+This lets a comparatively slow planner play a real-time campaign by turning important moments into explicit decision boundaries.
+
+## Phase 8 — Battle Brothers
 
 Build a second game adapter to test transfer of the Byheart model.
 
@@ -153,11 +231,12 @@ Build a second game adapter to test transfer of the Byheart model.
 - UI execution capabilities;
 - recruit/equipment/contract evaluators;
 - checkpointed battle comparison;
-- tactical policy compilation.
+- tactical policy compilation;
+- company-level long-horizon planning.
 
-Exit: demonstrate that Byheart's core concepts survive a different game with different time and decision semantics.
+Battle Brothers is attractive because combat already pauses at every decision.
 
-## Phase 8 — learned capability ecosystem
+## Phase 9 — learned capability ecosystem
 
 Longer-term possibilities:
 
@@ -167,22 +246,26 @@ Longer-term possibilities:
 - cross-machine capability portability;
 - model routing based on uncertainty and consequence;
 - skill arbitration when several capabilities apply;
-- capability retirement when evidence degrades;
 - human interventions compiled into candidate repairs;
 - transfer learning between related applications;
-- experiment ledger showing which behavior became deterministic and why.
+- experiment ledger showing which behavior became deterministic and why;
+- replay-derived confidence that decays when observations diverge;
+- a capability optimizer that replaces long traces with smaller equivalent procedures;
+- a curriculum where successful higher-level procedures create the action vocabulary for future learning.
 
-## A useful success metric
+## Success metrics
 
 For a repeated family of tasks, track:
 
 ```text
-strong-model calls per accepted result
+strong-agent decisions per accepted result
 human interventions per accepted result
 replay success rate
-cost / latency
+latency / compute cost
 capability reuse count
 unknown-state rate
+checkpoint attempts per improvement
+fraction of actions executed deterministically
 ```
 
-Byheart gets better when useful work migrates toward cheaper, more predictable execution while unusual situations remain visible.
+Byheart gets better when useful work migrates toward cheaper, more predictable execution while unusual situations remain visible to the agent or human who can actually judge them.
