@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { MemoryEvidenceSink } from "../src/evidence.js";
 import { PlaywrightSurface } from "../src/adapters/playwright.js";
 import { ReplayEngine } from "../src/replay.js";
-import type { Capability } from "../src/types.js";
+import type { Capability, ReplayResult } from "../src/types.js";
 
 let target: ChildProcess;
 const entrypoint = "http://127.0.0.1:4173";
@@ -36,7 +36,7 @@ test("take-home capability replays through the iframe target", async () => {
   try {
     const result = await new ReplayEngine(surface, new MemoryEvidenceSink(), { runId: "browser-success" })
       .run(stageCapability, { market: "ASH-17", quantity: "25" });
-    assert.equal(result.status, "success");
+    assert.equal(result.status, "success", describe(result));
   } finally {
     await surface.close();
   }
@@ -47,7 +47,7 @@ test("missing market is returned as a known outcome", async () => {
   try {
     const result = await new ReplayEngine(surface, new MemoryEvidenceSink(), { runId: "browser-known" })
       .run(stageCapability, { market: "NOPE-00", quantity: "25" });
-    assert.equal(result.status, "known_outcome");
+    assert.equal(result.status, "known_outcome", describe(result));
     if (result.status === "known_outcome") assert.equal(result.code, "market_not_found");
   } finally {
     await surface.close();
@@ -60,7 +60,7 @@ test("session expiry is recovered through the normal UI and replay continues", a
     await surface.pageHandle().getByLabel("expire session next action").check();
     const result = await new ReplayEngine(surface, new MemoryEvidenceSink(), { runId: "browser-recovery" })
       .run(stageCapability, { market: "ASH-17", quantity: "25" });
-    assert.equal(result.status, "success");
+    assert.equal(result.status, "success", describe(result));
   } finally {
     await surface.close();
   }
@@ -81,11 +81,11 @@ test("unexpected dialog escalates on the same browser session and can resume", a
           kind: "click",
           target: { kind: "role", role: "button", name: "Search" },
         });
-        assert.equal(search.delivered, true);
+        assert.equal(search.delivered, true, search.detail);
         return "resume";
       },
     }).run(stageCapability, { market: "ASH-17", quantity: "25" });
-    assert.equal(result.status, "success");
+    assert.equal(result.status, "success", describe(result));
     assert.ok(evidence.snapshot().some((event) => event.kind === "human_handoff"));
   } finally {
     await surface.close();
@@ -97,12 +97,12 @@ test("consequential purchase step is never executed before human takeover", asyn
   try {
     const result = await new ReplayEngine(surface, new MemoryEvidenceSink(), { runId: "browser-risk" })
       .run(submitCapability, { market: "ASH-17", quantity: "25" });
-    assert.equal(result.status, "intervention_required");
+    assert.equal(result.status, "intervention_required", describe(result));
     if (result.status === "intervention_required") {
       assert.equal(result.stepId, "submit-purchase");
     }
     const absent = await surface.check({ kind: "text_present", text: "HUMAN APPROVAL REQUIRED" });
-    assert.equal(absent.passed, false);
+    assert.equal(absent.passed, false, absent.detail);
   } finally {
     await surface.close();
   }
@@ -121,4 +121,8 @@ async function waitForServer(url: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw new Error(`demo target did not start: ${String(last)}`);
+}
+
+function describe(result: ReplayResult): string {
+  return JSON.stringify(result, null, 2);
 }
