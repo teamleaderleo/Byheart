@@ -42,7 +42,7 @@ export class DiscoverySession {
   private readonly driverId: string;
   private readonly policy: CapabilityPolicy;
   private readonly traceValue: DiscoveryTrace;
-  private pendingObservation?: Observation;
+  private pendingObservation: Observation | undefined;
   private finished = false;
 
   constructor(
