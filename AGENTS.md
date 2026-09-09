@@ -26,6 +26,10 @@ When a Byheart `teach` run succeeds, use its automatically emitted sibling `*.ca
 
 When teaching a browser workflow from Codex, use the `teach` bridge in `CODEX.md` and send the successful actions through that bridge. Do not drive a second private browser instance and then fabricate the trace afterward.
 
+## Starsector play
+
 For Starsector, treat Preflight's repository protocol as authoritative. Byheart may compose reviewed semantic actions and visual interaction, but should not grow an arbitrary game-reflection console.
+
+If the task is to **play Starsector**, read [`STARSSECTOR_PLAY.md`](STARSSECTOR_PLAY.md). The default experiment is a self-directed continuing campaign: Codex starts its own save, makes its own game decisions, learns from tooltips/guides/runtime evidence, keeps compact working memory under `play/starsector/`, and progressively makes recurring work easier. Prepared benchmark scenarios are supporting tools, not the campaign objective.
 
 Prefer a working end-to-end slice over broad half-implementations. Ambitious experiments belong behind clean seams once the core path remains runnable.

@@ -60,6 +60,16 @@ pause and re-evaluate
 
 This can support pursuit and evasion without requiring a model response every frame.
 
+### Continuous campaign experiment
+
+The default research run is now a **fresh, agent-owned, continuing campaign**, not a maintainer-authored benchmark sequence.
+
+Codex should start its own game, choose its own new-game options and objectives, play forward on the same save, learn from tooltips/runtime evidence/external guides, and keep compact working memory under `play/starsector/`. It can improve tooling while playing when repeated friction reveals a useful helper, observation, semantic action, or Byheart capability.
+
+Prepared scenarios and checkpoint copies remain valuable for debugging, regression proof, controller recovery, or deliberate comparison of alternatives. They should support ordinary play instead of replacing it.
+
+The first useful horizon is roughly 30 in-game days, followed by later sessions that continue the same campaign. See [`../STARSSECTOR_PLAY.md`](../STARSSECTOR_PLAY.md).
+
 ### Campaign decisions worth spending intelligence on
 
 - destination and route choice;
@@ -96,36 +106,34 @@ A rare blueprint can have negative immediate return and enormous strategic value
 
 ### Checkpoint search
 
-Preflight already treats agent-driven play as a disposable checkpoint-copy problem. Byheart can exploit that directly:
+Preflight already treats experimental agent play as a safe checkpoint-copy problem. Byheart can exploit that when a decision is genuinely worth comparing:
 
 ```text
-restore checkpoint
+copy current campaign checkpoint
 → try route A
 → score
 
-restore checkpoint
+restore checkpoint copy
 → try route B
 → score
 
-restore checkpoint
-→ modify the best route
-→ score
+choose the continuing branch explicitly
 ```
 
-Retain hard outcomes and a model judgment for strategic residue. Repeated winners become candidate policy rules or capabilities.
+Retain hard outcomes and a model judgment for strategic residue. Repeated winners become candidate policy rules or capabilities. Ordinary campaign play should continue forward without routine rollback.
 
 ### First Starsector milestones
 
-1. connect Byheart to Preflight's exact runtime state/action protocol;
-2. combine that semantic channel with screenshots;
-3. load a disposable checkpoint and reach a market;
-4. teach/replay one market UI procedure;
-5. implement bounded pause/resume movement;
-6. evade one pursuing fleet through repeated pause/replan increments;
-7. compare several escape plans from the same checkpoint;
-8. execute one trade/smuggling objective;
-9. add a read-only opportunity advisor;
-10. measure how many strong-model decisions disappear as skills accumulate.
+1. start a fresh campaign and record exact save/game/profile identity;
+2. play the opening normally through the real UI, using Preflight controls where already reviewed;
+3. keep the campaign alive for an initial ~30 in-game days;
+4. retain a useful self-written playbook rather than a transcript;
+5. teach/replay the first genuinely repeated UI procedure that emerges from play;
+6. add the first deterministic helper or read-only observation that materially reduces repeated reasoning;
+7. handle one meaningful pursuit/evasion or dangerous travel situation with pause/replan increments;
+8. use a checkpoint copy to compare alternatives only when a real decision makes the comparison useful;
+9. execute increasingly open-ended economic/strategic objectives on the same campaign;
+10. measure whether strong-model calls and UI rediscovery fall as skills accumulate while campaign quality stays acceptable.
 
 ## Battle Brothers
 
