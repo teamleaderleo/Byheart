@@ -1,0 +1,12 @@
+{
+  "existingCampaignCount": 10,
+  "changedExisting": [],
+  "added": [
+    "save_orisonvale_8892257165236837478"
+  ],
+  "continuing": {
+    "bytes": 90453279,
+    "files": 4,
+    "sha256": "187a73bf0a88a9d00b6441490f43a0a2fa3eb5ebc78575483f829c02fdc5850b"
+  }
+}
