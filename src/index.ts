@@ -8,3 +8,4 @@ export * from "./session.js";
 export * from "./template.js";
 export * from "./types.js";
 export * from "./adapters/scripted.js";
+export * from "./adapters/playwright.js";
