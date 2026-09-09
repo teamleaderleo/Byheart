@@ -23,10 +23,12 @@ import type {
   Capability,
   Condition,
   DiscoveryTrace,
+  ExtractionRule,
   JsonPrimitive,
   JsonValue,
   KnownOutcomeRule,
   ReplayResult,
+  ScalarType,
   ValueSchema,
 } from "./types.js";
 
@@ -225,6 +227,8 @@ interface TeachConfig {
   maxSteps: number;
   parameters: Record<string, string>;
   knownOutcomes: KnownOutcomeRule[];
+  outputSchemas: Record<string, ValueSchema>;
+  extraction: ExtractionRule[];
 }
 
 function teachConfig(args: ParsedArgs): TeachConfig {
@@ -233,6 +237,7 @@ function teachConfig(args: ParsedArgs): TeachConfig {
   const successText = required(args, "success-text");
   const name = args.first("name") ?? "learned-capability";
   const id = args.first("id") ?? slug(name);
+  const outputConfig = parseOutputExtractions(args.all("extract-output"));
   return {
     url,
     goal,
@@ -245,6 +250,8 @@ function teachConfig(args: ParsedArgs): TeachConfig {
     maxSteps: Number(args.first("max-steps") ?? 30),
     parameters: parseAssignments(args.all("parameter")),
     knownOutcomes: parseKnownOutcomes(args.all("known-outcome")),
+    outputSchemas: outputConfig.schemas,
+    extraction: outputConfig.rules,
   };
 }
 
@@ -264,8 +271,9 @@ function compileLearnedCapability(
     name: config.name,
     description: config.goal,
     inputs: inputSchemas,
-    outputs: {},
+    outputs: config.outputSchemas,
     success: [{ kind: "text_present", text: config.successText }],
+    ...(config.extraction.length ? { extraction: config.extraction } : {}),
     parameterize,
     model: driverId,
     policy: {
@@ -352,6 +360,40 @@ function parseKnownOutcomes(values: string[]): KnownOutcomeRule[] {
   });
 }
 
+function parseOutputExtractions(values: string[]): {
+  schemas: Record<string, ValueSchema>;
+  rules: ExtractionRule[];
+} {
+  const schemas: Record<string, ValueSchema> = {};
+  const rules: ExtractionRule[] = [];
+  for (const value of values) {
+    const equals = value.indexOf("=");
+    if (equals < 1) throw new Error(`extract output must be name=type:accessible-name: ${value}`);
+    const name = value.slice(0, equals);
+    const spec = value.slice(equals + 1);
+    const colon = spec.indexOf(":");
+    if (colon < 1 || colon === spec.length - 1) {
+      throw new Error(`extract output must be name=type:accessible-name: ${value}`);
+    }
+    const type = spec.slice(0, colon) as ScalarType;
+    const accessibleName = spec.slice(colon + 1);
+    if (!(type === "string" || type === "number" || type === "boolean")) {
+      throw new Error(`extract output ${name} has unsupported type: ${type}`);
+    }
+    if (schemas[name]) throw new Error(`duplicate extract output: ${name}`);
+    schemas[name] = {
+      type,
+      description: `Extracted from the UI status named ${accessibleName}.`,
+    };
+    rules.push({
+      output: name,
+      target: { kind: "role", role: "status", name: accessibleName },
+      as: type,
+    });
+  }
+  return { schemas, rules };
+}
+
 function parseAssignments(values: string[]): Record<string, string> {
   return Object.fromEntries(values.map((value) => {
     const separator = value.indexOf("=");
@@ -408,7 +450,7 @@ function slug(value: string): string {
 }
 
 function usage(): void {
-  console.log(`Byheart\n\nPrimary discovery path (Codex/external agent):\n  node dist/src/cli.js teach --url http://127.0.0.1:4173 --goal "Stage an order for 25 supplies at ASH-17" --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --output runtime/stage-order.json\n\nA successful teach automatically writes a sibling durability candidate. Real replays against distinct inputs update that candidate. Once verified, promote it into a repository-local skill wrapper:\n  node dist/src/cli.js promote --candidate runtime/stage-order.candidate.json\n\nDeterministic replay:\n  node dist/src/cli.js replay --capability runtime/stage-order.json --input market=VES-04 --input quantity=10 --operator --headed\n\nOptional self-contained API discovery:\n  node dist/src/cli.js teach-api --url http://127.0.0.1:4173 --goal "..." --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --model <model>\n\nCommon teach options:\n  --driver codex --max-steps 30 --known-outcome market_not_found=NO SUCH MARKET --headed\n`);
+  console.log(`Byheart\n\nPrimary discovery path (Codex/external agent):\n  node dist/src/cli.js teach --url http://127.0.0.1:4173 --goal "Stage an order for 25 supplies at ASH-17" --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --extract-output reference="string:Order reference" --extract-output total_credits="number:Order total credits" --output runtime/stage-order.json\n\nA successful teach automatically writes a sibling durability candidate. Real replays against distinct inputs update that candidate. Once verified, promote it into a repository-local skill wrapper:\n  node dist/src/cli.js promote --candidate runtime/stage-order.candidate.json\n\nDeterministic replay:\n  node dist/src/cli.js replay --capability runtime/stage-order.json --input market=VES-04 --input quantity=10 --operator --headed\n\nOptional self-contained API discovery:\n  node dist/src/cli.js teach-api --url http://127.0.0.1:4173 --goal "..." --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --model <model>\n\nCommon teach options:\n  --driver codex --max-steps 30 --known-outcome market_not_found=NO SUCH MARKET --extract-output name="string:Accessible status name" --headed\n`);
 }
 
 void ({} as Record<string, JsonValue>);
