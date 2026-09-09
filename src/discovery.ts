@@ -1,5 +1,6 @@
 import { DiscoverySession } from "./discovery-session.js";
 import type {
+  ActionKind,
   DecisionModel,
   DiscoveryTrace,
   EvidenceSink,
@@ -9,7 +10,8 @@ import type {
 
 export interface DiscoveryOptions {
   maxSteps?: number;
-  allowedActions: import("./types.js").ActionKind[];
+  allowedActions: ActionKind[];
+  allowedEntrypoints?: string[];
   consequentialPolicy?: "block" | "require_human" | "allow";
   now?: () => Date;
 }
