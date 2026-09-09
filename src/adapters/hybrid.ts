@@ -132,8 +132,9 @@ export class HybridSurface implements Surface {
   }
 
   async captureEvidence(label: string): Promise<EvidenceRef | undefined> {
-    return this.options.visual.captureEvidence?.(label)
-      ?? this.options.semantic.captureEvidence?.(label);
+    const visual = await this.options.visual.captureEvidence?.(label);
+    if (visual) return visual;
+    return this.options.semantic.captureEvidence?.(label);
   }
 
   async pause(): Promise<void> {
