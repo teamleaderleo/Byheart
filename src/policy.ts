@@ -32,6 +32,16 @@ export function evaluatePolicy(
     }
   }
 
+  if (action.kind === "navigate" && policy.allowedEntrypoints?.length) {
+    const allowedDestination = policy.allowedEntrypoints.some((entry) => entrypointMatches(entry, action.url));
+    if (!allowedDestination) {
+      return {
+        decision: "deny",
+        reason: `navigation destination ${action.url} is outside the allowlist`,
+      };
+    }
+  }
+
   const consequenceKey = actionConsequenceKey(action);
   const consequential =
     ("risk" in action && action.risk === "consequential") ||
