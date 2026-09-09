@@ -5,11 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PlaywrightSurface } from "../src/adapters/playwright.js";
 
+const inner = `<!doctype html><html><body>
+  <label>Market code <input name="market"></label>
+  <button onclick="document.body.insertAdjacentHTML('beforeend','<p>ORDER STAGED</p>')">Stage order</button>
+</body></html>`;
 const html = `<!doctype html><html><body>
   <h1>Outer console</h1>
-  <iframe title="Workspace" srcdoc="<!doctype html><html><body><label>Market code <input name='market'></label><button onclick=\"document.body.insertAdjacentHTML('beforeend','<p>ORDER STAGED</p>')\">Stage order</button></body></html>"></iframe>
+  <iframe title="Workspace" src="data:text/html,${encodeURIComponent(inner)}"></iframe>
 </body></html>`;
-
 const entrypoint = `data:text/html,${encodeURIComponent(html)}`;
 
 test("Playwright adapter resolves semantic targets across frames", async () => {
@@ -21,8 +24,8 @@ test("Playwright adapter resolves semantic targets across frames", async () => {
       target: { kind: "label", label: "Market code" },
       text: "ASH-17",
     });
-    assert.equal(typed.delivered, true);
-    assert.equal(typed.effectObserved, true);
+    assert.equal(typed.delivered, true, typed.detail);
+    assert.equal(typed.effectObserved, true, typed.detail);
 
     const extracted = await surface.extract({
       output: "market",
@@ -35,10 +38,10 @@ test("Playwright adapter resolves semantic targets across frames", async () => {
       kind: "click",
       target: { kind: "role", role: "button", name: "Stage order" },
     });
-    assert.equal(clicked.delivered, true);
+    assert.equal(clicked.delivered, true, clicked.detail);
 
     const done = await surface.check({ kind: "text_present", text: "ORDER STAGED" });
-    assert.equal(done.passed, true);
+    assert.equal(done.passed, true, done.detail);
   } finally {
     await surface.close();
   }
