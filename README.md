@@ -4,10 +4,10 @@
 
 Byheart turns successful computer-use experience into reusable capabilities.
 
-A capable model can explore an unfamiliar interface, accomplish a goal, and leave behind something more durable than a transcript: a typed, reviewable skill with inputs, outputs, checkpoints, evidence, policy, and a deterministic execution path.
+A capable agent can explore an unfamiliar interface, accomplish a goal, and leave behind something more durable than a transcript: a typed, reviewable skill with inputs, outputs, checkpoints, evidence, policy, and a deterministic execution path.
 
 ```text
-goal
+agent encounters task
   ↓
 observe → decide → act
   ↓
@@ -24,28 +24,55 @@ The longer question is:
 
 > How much of an agent's successful experience can become executable knowledge?
 
+## The main split
+
+Byheart does **not** need to own the reasoning model.
+
+The preferred path is:
+
+```text
+Codex / another capable agent
+        ↓ judgment
+resident Byheart discovery session
+        ↓ validated action
+real surface
+        ↓ receipt + observation + evidence
+agent
+        ↓
+      ...
+        ↓ success
+Byheart capability compiler
+        ↓
+deterministic replay
+```
+
+Codex is especially useful because it can inspect source, logs, screenshots, adapters, and target behavior while teaching Byheart. The direct provider-API driver remains an optional portability adapter.
+
 ## Current status
 
-The browser vertical slice now includes:
+The repository now contains:
 
 - typed `byheart-capability/v1` and result contracts;
 - input validation and parameter templating;
 - deterministic replay without a model in the decision loop;
 - explicit known outcomes versus execution failures;
 - preconditions, postconditions, retries, recoveries, and human-on-failure routing;
-- adapter/action/entrypoint allowlists and consequential-action policy;
+- adapter/action/entrypoint/navigation allowlists and consequential-action policy;
 - redacted JSONL evidence and screenshots;
 - explicit live-session ownership states;
 - real same-session human takeover and resume;
-- model-facing observe → decide → act discovery;
-- successful-trace → parameterized capability compiler;
+- a resident discovery session shared by embedded and external agents;
+- a local external-discovery bridge designed for Codex/computer-use agents;
+- successful-trace → parameterized capability compilation;
 - Playwright browser adapter with cross-frame semantic targeting;
-- OpenAI Responses discovery model;
+- remote-desktop surface contract and HTTP transport;
+- Preflight/Starsector semantic surface adapter over its closed request/receipt protocol;
+- an optional direct OpenAI Responses discovery model;
 - a deliberately awkward local legacy-style browser target.
 
 ## Setup
 
-Requirements: Node 22+ and an OpenAI API key only for live discovery.
+Requirements: Node 22+.
 
 ```bash
 npm install
@@ -53,7 +80,7 @@ npm run browser:install
 npm test
 ```
 
-Keep credentials in the environment. See `.env.example`.
+No API key is required for the normal Codex-driven path.
 
 ## Demo target
 
@@ -65,16 +92,47 @@ npm run demo:target
 
 The Perihelion Exchange Console runs at `http://127.0.0.1:4173`. It is table-heavy, iframe-based, and intentionally lacks test IDs. It exposes search → detail → form → review → confirmation plus injectable slowness, session expiry, surprise dialogs, validation errors, and a consequential purchase boundary.
 
-### Deterministic replay
+## Teach with Codex
 
 Terminal 2:
+
+```bash
+npm run build
+npm run byheart -- teach \
+  --url http://127.0.0.1:4173 \
+  --goal "Find market ASH-17 and stage an order for 25 supplies. Stop at ORDER STAGED; do not submit a purchase." \
+  --success-text "ORDER STAGED" \
+  --parameter market=ASH-17 \
+  --parameter quantity=25 \
+  --known-outcome "market_not_found=NO SUCH MARKET" \
+  --name stage-supplies-order \
+  --output runtime/stage-supplies-order.json \
+  --run-dir evidence/codex-discovery
+```
+
+`teach` opens one resident target session and prints a local bridge URL. Give Codex [`CODEX.md`](CODEX.md). Codex reads `/v1/state`, chooses one bounded action at a time, posts it through Byheart, inspects the receipt/new observation, and finishes through `/v1/done` once Byheart independently verifies the declared success condition.
+
+The resulting artifact contains the successful external action trace, parameterized values, provenance, policy, retries/recovery seams, and evidence references.
+
+## Deterministic replay
+
+```bash
+npm run byheart -- replay \
+  --capability runtime/stage-supplies-order.json \
+  --input market=VES-04 \
+  --input quantity=10 \
+  --headed
+```
+
+Replay asks no model what to do next.
+
+A checked-in example can be run immediately:
 
 ```bash
 npm run byheart -- replay \
   --capability examples/capabilities/stage-supplies-order.json \
   --input market=ASH-17 \
-  --input quantity=25 \
-  --headed
+  --input quantity=25
 ```
 
 Try a legitimate domain outcome:
@@ -86,9 +144,9 @@ npm run byheart -- replay \
   --input quantity=25
 ```
 
-The result is `known_outcome: market_not_found`, rather than an execution crash.
+The result is `known_outcome: market_not_found`, instead of an execution crash.
 
-### Same-session human takeover
+## Same-session human takeover
 
 ```bash
 npm run byheart -- replay \
@@ -99,34 +157,23 @@ npm run byheart -- replay \
   --headed
 ```
 
-Byheart drives the safe steps to the review screen. The final consequential click pauses automation and opens a tiny operator surface. Use the same live target browser to perform the requested step, then choose **Resume automation** in the operator surface. Replay verifies the postcondition and continues on that same session.
+Byheart drives the safe steps to the review screen. The final consequential click pauses automation and opens a tiny operator surface. Use the same live target browser to perform the requested step, then choose **Resume automation**. Replay verifies the postcondition and continues on that same session.
 
-### Real model discovery
+## Optional direct API discovery
 
-With `OPENAI_API_KEY` set:
+A standalone provider-backed path still exists when it is useful:
 
 ```bash
-npm run byheart -- teach \
+npm run byheart -- teach-api \
   --url http://127.0.0.1:4173 \
-  --goal "Look up market ASH-17, stage a purchase order for 25 supplies, and stop when ORDER STAGED is visible." \
+  --goal "..." \
   --success-text "ORDER STAGED" \
   --parameter market=ASH-17 \
   --parameter quantity=25 \
-  --known-outcome "market_not_found=NO SUCH MARKET" \
-  --name stage-supply-order \
-  --output runtime/stage-supply-order.json \
-  --headed
+  --model <model>
 ```
 
-Discovery stores screenshots, a structured decision/action log, and the external trace under `runtime/`, then emits a parameterized capability. Replay it without another model decision loop:
-
-```bash
-npm run byheart -- replay \
-  --capability runtime/stage-supply-order.json \
-  --input market=VES-04 \
-  --input quantity=10 \
-  --headed
-```
+That adapter can use `OPENAI_API_KEY`; it is not required by Byheart itself.
 
 ## Result classes
 
@@ -141,26 +188,25 @@ intervention_required
 
 An action receipt also keeps **delivery** separate from **verified effect**. A click reaching the input channel does not prove the application did what was intended.
 
-## Beyond the take-home
+## Surfaces beyond the browser
 
-Byheart is intentionally broader than browsers. A surface may be a native desktop app, accessibility tree, screenshot/coordinate stream, remote desktop, Linux/Windows VM, Moonlight session, game, embedded semantic adapter, or a hybrid of several channels.
+### Remote desktop
 
-The personally interesting research path is games where a strong model can supply useful priors immediately and repeated successful behavior can migrate into cheaper skills.
+The remote adapter defines a small session/frame/input protocol for x86 Linux, Windows VMs, Moonlight, awkward native applications, and other pixel-first targets. The reasoning agent still sees screenshots; Byheart binds actions to one remote session identity and records frame evidence.
 
-### Starsector
+### Starsector through Preflight
 
-Preflight already contains the beginnings of a semantic game-control layer. Byheart can sit above it for campaign planning, UI operation, pause/resume movement, evasion, trading/smuggling, checkpointed plan comparison, and compilation of repeated procedures.
+Preflight already publishes exact PID/start-bound semantic state and accepts a closed catalog of reviewed game actions. Byheart now has an adapter for that boundary. This is the beginning of a split where Preflight owns exact game/process/save mechanics while Byheart owns planning, learned procedures, checkpoint search, and eventual capability composition.
+
+Interesting campaign work includes pause/resume movement, patrol evasion, market interaction, trading/smuggling, route planning, strategic acquisitions, and repeated checkpoint experiments. Fine combat control can remain secondary while the game autopilot handles ordinary fights.
 
 ### Battle Brothers
 
 Turn-based combat and long-horizon company management give clean decision boundaries for model judgment, deterministic helpers, checkpoint search, and tactical policy compilation.
 
-### Remote desktop
-
-A screenshot + mouse/keyboard adapter is the universal lowest-common-denominator route into awkward native software and VMs. Stronger guest-side adapters can replace stable pieces later.
-
 ## Read next
 
+- [`CODEX.md`](CODEX.md) — primary discovery workflow for Codex/external agents.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — current technical model.
 - [`ROADMAP.md`](ROADMAP.md) — ambitious implementation/research path.
 - [`TAKEHOME.md`](TAKEHOME.md) — the interview-project slice.

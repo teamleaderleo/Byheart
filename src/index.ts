@@ -1,6 +1,8 @@
 export * from "./artifact.js";
+export * from "./bridge.js";
 export * from "./compiler.js";
 export * from "./discovery.js";
+export * from "./discovery-session.js";
 export * from "./evidence.js";
 export * from "./evidence-file.js";
 export * from "./operator.js";
@@ -11,4 +13,7 @@ export * from "./template.js";
 export * from "./types.js";
 export * from "./adapters/scripted.js";
 export * from "./adapters/playwright.js";
+export * from "./adapters/remote.js";
+export * from "./adapters/preflight.js";
+export * from "./adapters/hybrid.js";
 export * from "./models/openai.js";
