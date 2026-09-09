@@ -15,4 +15,5 @@ export * from "./adapters/scripted.js";
 export * from "./adapters/playwright.js";
 export * from "./adapters/remote.js";
 export * from "./adapters/preflight.js";
+export * from "./adapters/hybrid.js";
 export * from "./models/openai.js";
