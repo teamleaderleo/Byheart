@@ -5,6 +5,15 @@ import { DiscoveryBridge } from "./bridge.js";
 import { compileTrace } from "./compiler.js";
 import { DiscoveryRunner } from "./discovery.js";
 import { DiscoverySession } from "./discovery-session.js";
+import {
+  candidateFromDiscovery,
+  candidatePathForCapability,
+  promoteCandidate,
+  readCandidate,
+  recordVerification,
+  renderDurabilityMemo,
+  writeCandidate,
+} from "./durability.js";
 import { FileEvidenceSink } from "./evidence-file.js";
 import { OpenAIDecisionModel } from "./models/openai.js";
 import { OperatorGate } from "./operator.js";
@@ -17,6 +26,7 @@ import type {
   JsonPrimitive,
   JsonValue,
   KnownOutcomeRule,
+  ReplayResult,
   ValueSchema,
 } from "./types.js";
 
@@ -32,6 +42,9 @@ try {
       break;
     case "replay":
       await replay(argv);
+      break;
+    case "promote":
+      await promote(argv);
       break;
     case "help":
     case "--help":
@@ -87,10 +100,11 @@ async function teachExternal(argv: string[]): Promise<void> {
 
     const trace = await bridge.waitForCompletion();
     const capability = compileLearnedCapability(trace, config, driverId, evidence.refs().map((item) => item.uri), allowedEntrypoints);
-    await writeLearnedArtifacts(surface, trace, capability, config);
+    const candidatePath = await writeLearnedArtifacts(surface, trace, capability, config);
 
     console.log(`Learned ${capability.name}`);
     console.log(`Artifact: ${config.output}`);
+    console.log(`Durability candidate: ${candidatePath}`);
     console.log(`Actions compiled: ${capability.steps.length}`);
   } finally {
     await bridge.close();
@@ -130,10 +144,11 @@ async function teachApi(argv: string[]): Promise<void> {
       evidence.refs().map((item) => item.uri),
       allowedEntrypoints,
     );
-    await writeLearnedArtifacts(surface, trace, capability, config);
+    const candidatePath = await writeLearnedArtifacts(surface, trace, capability, config);
 
     console.log(`Learned ${capability.name}`);
     console.log(`Artifact: ${config.output}`);
+    console.log(`Durability candidate: ${candidatePath}`);
     console.log(`Evidence: ${config.runDirectory}`);
     console.log(`Actions compiled: ${capability.steps.length}`);
   } finally {
@@ -170,12 +185,32 @@ async function replay(argv: string[]): Promise<void> {
     const result = await engine.run(capability, inputs);
     await surface.captureEvidence?.(`replay-${result.status}`);
     await writeFile(resolve(runDirectory, "result.json"), JSON.stringify(result, null, 2) + "\n", "utf8");
+    const candidate = await maybeRecordDurabilityVerification(capabilityPath, result, inputs, runDirectory);
     console.log(JSON.stringify(result, null, 2));
     console.log(`Evidence: ${runDirectory}`);
+    if (candidate) {
+      console.log(`Durability status: ${candidate.status}`);
+      if (candidate.status === "verified") {
+        console.log(`Verified candidate. Promote with: npm run byheart -- promote --candidate ${candidatePathForCapability(capabilityPath)}`);
+      }
+    }
   } finally {
     await operator?.close();
     await surface.close();
   }
+}
+
+async function promote(argv: string[]): Promise<void> {
+  const args = parseArgs(argv);
+  const candidatePath = resolve(required(args, "candidate"));
+  const result = await promoteCandidate({
+    candidatePath,
+    ...(args.first("skills-dir") ? { skillsDirectory: resolve(args.first("skills-dir")!) } : {}),
+  });
+  console.log(`Promoted ${result.candidate.id}`);
+  console.log(`Skill: ${result.skillMarkdown}`);
+  console.log(`Capability: ${result.capabilityPath}`);
+  console.log(`Index: ${result.indexPath}`);
 }
 
 interface TeachConfig {
@@ -252,10 +287,35 @@ async function writeLearnedArtifacts(
   trace: DiscoveryTrace,
   capability: Capability,
   config: TeachConfig,
-): Promise<void> {
+): Promise<string> {
   await writeFile(config.output, JSON.stringify(capability, null, 2) + "\n", "utf8");
   await writeFile(resolve(config.runDirectory, "trace.json"), JSON.stringify(trace, null, 2) + "\n", "utf8");
   await surface.captureEvidence?.("discovery-final");
+
+  const candidate = candidateFromDiscovery(trace, capability, { artifactPath: config.output });
+  const candidatePath = candidatePathForCapability(config.output);
+  await writeCandidate(candidatePath, candidate);
+  await writeFile(resolve(config.runDirectory, "DURABILITY.md"), renderDurabilityMemo(candidate), "utf8");
+  return candidatePath;
+}
+
+async function maybeRecordDurabilityVerification(
+  capabilityPath: string,
+  result: ReplayResult,
+  inputs: Record<string, string>,
+  runDirectory: string,
+): Promise<Awaited<ReturnType<typeof readCandidate>> | undefined> {
+  const candidatePath = candidatePathForCapability(capabilityPath);
+  try {
+    const candidate = await readCandidate(candidatePath);
+    const updated = recordVerification(candidate, result, inputs);
+    await writeCandidate(candidatePath, updated);
+    await writeFile(resolve(runDirectory, "DURABILITY.md"), renderDurabilityMemo(updated), "utf8");
+    return updated;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
 }
 
 function hardenCompiledCapability(capability: Capability, knownOutcomes: KnownOutcomeRule[]): void {
@@ -348,7 +408,7 @@ function slug(value: string): string {
 }
 
 function usage(): void {
-  console.log(`Byheart\n\nPrimary discovery path (Codex/external agent):\n  node dist/src/cli.js teach --url http://127.0.0.1:4173 --goal "Stage an order for 25 supplies at ASH-17" --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --output runtime/stage-order.json\n\nThe command keeps one live browser resident and prints a local discovery bridge. Give Codex CODEX.md, or have any external agent drive GET /v1/state -> POST /v1/action until POST /v1/done succeeds. No API key is required.\n\nDeterministic replay:\n  node dist/src/cli.js replay --capability runtime/stage-order.json --input market=VES-04 --input quantity=10 --operator --headed\n\nOptional self-contained API discovery:\n  node dist/src/cli.js teach-api --url http://127.0.0.1:4173 --goal "..." --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --model <model>\n\nCommon teach options:\n  --driver codex --max-steps 30 --known-outcome market_not_found=NO SUCH MARKET --headed\n`);
+  console.log(`Byheart\n\nPrimary discovery path (Codex/external agent):\n  node dist/src/cli.js teach --url http://127.0.0.1:4173 --goal "Stage an order for 25 supplies at ASH-17" --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --output runtime/stage-order.json\n\nA successful teach automatically writes a sibling durability candidate. Real replays against distinct inputs update that candidate. Once verified, promote it into a repository-local skill wrapper:\n  node dist/src/cli.js promote --candidate runtime/stage-order.candidate.json\n\nDeterministic replay:\n  node dist/src/cli.js replay --capability runtime/stage-order.json --input market=VES-04 --input quantity=10 --operator --headed\n\nOptional self-contained API discovery:\n  node dist/src/cli.js teach-api --url http://127.0.0.1:4173 --goal "..." --success-text "ORDER STAGED" --parameter market=ASH-17 --parameter quantity=25 --model <model>\n\nCommon teach options:\n  --driver codex --max-steps 30 --known-outcome market_not_found=NO SUCH MARKET --headed\n`);
 }
 
 void ({} as Record<string, JsonValue>);

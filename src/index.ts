@@ -5,6 +5,7 @@ export * from "./checkpoint-search.js";
 export * from "./compiler.js";
 export * from "./discovery.js";
 export * from "./discovery-session.js";
+export * from "./durability.js";
 export * from "./evidence.js";
 export * from "./evidence-file.js";
 export * from "./operator.js";
