@@ -4,12 +4,16 @@
   "private": true,
   "type": "module",
   "description": "Compile successful computer-use experience into replayable capabilities.",
+  "bin": {
+    "byheart": "dist/src/cli.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test dist/test/*.test.js",
     "demo": "npm run build && node dist/src/demo.js",
     "demo:target": "node demo/legacy-console/server.mjs",
-    "browser:install": "playwright install chromium"
+    "browser:install": "playwright install chromium",
+    "byheart": "npm run build && node dist/src/cli.js"
   },
   "engines": {
     "node": ">=22"
