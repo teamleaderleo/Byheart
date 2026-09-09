@@ -60,8 +60,36 @@ export function evaluatePolicy(
 }
 
 function entrypointMatches(allowed: string, actual: string): boolean {
-  if (allowed.endsWith("*")) return actual.startsWith(allowed.slice(0, -1));
-  return actual === allowed;
+  if (allowed.endsWith("*")) {
+    const allowedPrefix = normalizeUrlPrefix(allowed.slice(0, -1));
+    return normalizeUrlPrefix(actual).startsWith(allowedPrefix);
+  }
+
+  try {
+    const expected = new URL(allowed);
+    const observed = new URL(actual);
+    return expected.protocol === observed.protocol
+      && expected.host === observed.host
+      && normalizePath(expected.pathname) === normalizePath(observed.pathname)
+      && expected.search === observed.search;
+  } catch {
+    return actual === allowed;
+  }
+}
+
+function normalizeUrlPrefix(value: string): string {
+  try {
+    const url = new URL(value);
+    const path = normalizePath(url.pathname);
+    return `${url.protocol}//${url.host}${path === "/" ? "/" : path}${url.search}`;
+  } catch {
+    return value;
+  }
+}
+
+function normalizePath(path: string): string {
+  if (!path || path === "/") return "/";
+  return path.replace(/\/+$/, "") || "/";
 }
 
 function actionConsequenceKey(action: Action): string | undefined {
