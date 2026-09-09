@@ -96,8 +96,7 @@ export class DiscoveryBridge {
         if (request.method === "POST" && url.pathname === "/v1/done") {
           const body = await readJsonBody(request);
           const checks = [];
-          const surface = this.surfaceFromSession();
-          for (const condition of this.options.success) checks.push(await surface.check(condition));
+          for (const condition of this.options.success) checks.push(await this.options.session.check(condition));
           if (!checks.every((check) => check.passed)) {
             json(response, 409, {
               accepted: false,
@@ -194,7 +193,7 @@ export class DiscoveryBridge {
       doneEndpoint: `${this.url()}/v1/done`,
       stuckEndpoint: `${this.url()}/v1/stuck`,
       actionContract: {
-        click: { kind: "click", target: { kind: "role|label|text|selector|point", "...": "target fields" } },
+        click: { kind: "click", target: { kind: "role|label|text|selector|point", fields: "target-specific" } },
         type: { kind: "type", target: { kind: "label", label: "..." }, text: "..." },
         select: { kind: "select", target: { kind: "label", label: "..." }, value: "..." },
         navigate: { kind: "navigate", url: "..." },
@@ -211,13 +210,6 @@ export class DiscoveryBridge {
       : "<p>This surface has no file-backed screenshot.</p>";
     return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Byheart discovery bridge</title><style>
 :root{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#11141a;color:#efede5}body{margin:0}header{padding:14px 20px;border-bottom:1px solid #4c5260;display:flex;justify-content:space-between}main{max-width:1100px;margin:28px auto;padding:0 20px}pre{white-space:pre-wrap;background:#181d25;border:1px solid #3d4450;padding:14px;max-height:36vh;overflow:auto}img{max-width:100%;border:1px solid #4c5260}code{color:#cbd4e5}</style></head><body><header><strong>BYHEART // EXTERNAL DISCOVERY</strong><span>${escapeHtml(this.driverId)}</span></header><main><h1>${escapeHtml(this.options.session.goal)}</h1><p>Step ${this.options.session.step()} / ${this.options.session.stepLimit()} · run ${escapeHtml(this.options.session.runId())}</p>${screenshot}<h2>Observation</h2><pre>${escapeHtml(observation.summary)}</pre><h2>Agent protocol</h2><pre>GET  /v1/state\nPOST /v1/action  {"action": {...}, "note": "..."}\nPOST /v1/done    {"note": "goal visibly complete"}\nPOST /v1/stuck   {"reason": "..."}</pre></main></body></html>`;
-  }
-
-  private surfaceFromSession(): import("./types.js").Surface {
-    // Kept private by DiscoverySession during normal use; success checks need the
-    // same live surface. Access through a narrow internal field instead of asking
-    // the external reasoning agent to certify its own success.
-    return (this.options.session as unknown as { surface: import("./types.js").Surface }).surface;
   }
 }
 
