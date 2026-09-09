@@ -5,6 +5,8 @@ import type {
   Action,
   ActionKind,
   CapabilityPolicy,
+  CheckReceipt,
+  Condition,
   DiscoveryTrace,
   EvidenceSink,
   Observation,
@@ -96,6 +98,11 @@ export class DiscoverySession {
     this.requireOpen();
     if (!this.pendingObservation) this.pendingObservation = await this.surface.observe();
     return this.pendingObservation;
+  }
+
+  async check(condition: Condition): Promise<CheckReceipt> {
+    this.requireOpen();
+    return this.surface.check(condition);
   }
 
   async act(action: Action, note?: string, driverId = this.driverId): Promise<DiscoveryActionResult> {
