@@ -27,6 +27,19 @@ test("policy allows reversible actions on an allowed surface", () => {
   );
 });
 
+test("policy treats equivalent root URLs with and without trailing slash as the same entrypoint", () => {
+  const rootPolicy: CapabilityPolicy = {
+    ...policy,
+    allowedEntrypoints: ["http://localhost:3000"],
+  };
+  const decision = evaluatePolicy(
+    rootPolicy,
+    { ...identity, entrypoint: "http://localhost:3000/" },
+    { kind: "click", target: { kind: "text", text: "Continue" } },
+  );
+  assert.equal(decision.decision, "allow");
+});
+
 test("policy routes consequential actions to human", () => {
   const decision = evaluatePolicy(policy, identity, {
     kind: "semantic",
