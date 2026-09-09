@@ -3,6 +3,7 @@ export * from "./compiler.js";
 export * from "./discovery.js";
 export * from "./evidence.js";
 export * from "./evidence-file.js";
+export * from "./operator.js";
 export * from "./policy.js";
 export * from "./replay.js";
 export * from "./session.js";
