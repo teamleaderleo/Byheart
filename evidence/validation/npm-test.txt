@@ -1,0 +1,51 @@
+
+> byheart@0.2.0 test
+> npm run build && node --test dist/test/*.test.js
+
+
+> byheart@0.2.0 build
+> tsc -p tsconfig.json
+
+✔ external discovery bridge keeps one trace while an agent chooses actions (338.565041ms)
+✔ Playwright adapter resolves semantic targets across frames (3793.033875ms)
+✔ checkpoint search restores the same baseline for every candidate and keeps the Pareto frontier (22.315209ms)
+✔ compiler parameterizes a successful trace (4.375541ms)
+✔ successful discovery becomes a candidate and distinct replays verify it (12.500916ms)
+✔ a real failure keeps a candidate out of automatic promotion (0.460333ms)
+✔ verified candidate promotes to a repository-local skill wrapper (94.112333ms)
+✔ evidence redacts obvious secret-bearing fields (148.548541ms)
+✔ hybrid surface routes reviewed game actions to semantic control and remote keys to visual control (5.628708ms)
+Human takeover requested. Operator surface: http://127.0.0.1:56833
+✔ operator gate exposes a pending takeover and resumes it (230.997625ms)
+✔ plan composes saved capabilities and feeds earlier outputs into later inputs (111.808667ms)
+✔ catalog resolves latest versions while preserving explicit version requests (1.836375ms)
+✔ policy allows reversible actions on an allowed surface (3.11575ms)
+✔ policy treats equivalent root URLs with and without trailing slash as the same entrypoint (0.324792ms)
+✔ policy routes consequential actions to human (0.178459ms)
+✔ policy rejects an unexpected entrypoint (49.973917ms)
+✔ policy rejects navigation outside the allowed destination set (1.010166ms)
+✔ Preflight adapter exposes one exact game process as a semantic Byheart surface (33.152458ms)
+✔ Preflight adapter declines actions outside the reviewed catalog (5.984625ms)
+✔ remote desktop surface records point actions against an exact session (22.734959ms)
+✔ remote desktop rejects points outside the declared display (2.603709ms)
+✔ remote desktop fails closed if the guest session changes (2.248625ms)
+✔ remote semantic hotkeys pass through the closed input catalog (289.599083ms)
+✔ replay returns typed success and extracted outputs (99.07825ms)
+✔ replay separates known business outcome from failure (1.398458ms)
+✔ replay rejects undeclared inputs before acting (0.344ms)
+✔ replay pauses consequential work when no human handler is attached (0.93825ms)
+✔ same live session can pass to a human and resume deterministic replay (6.028917ms)
+✔ take-home capability replays through the iframe target and extracts typed outputs (6397.96625ms)
+✔ typed outputs vary with replay inputs and target data (5001.797167ms)
+✔ missing market is returned as a known outcome (4807.878292ms)
+✔ session expiry is recovered through the normal UI and replay continues (8128.690834ms)
+✔ unexpected dialog escalates on the same browser session and can resume (10069.420625ms)
+✔ consequential purchase step is never executed before human takeover (3204.918041ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 40801.691666

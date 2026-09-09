@@ -1,0 +1,16 @@
+{
+  "status": "success",
+  "runId": "a2fbad68-c8cf-4c19-9c71-177e17783347",
+  "capabilityId": "perihelion.stage-and-submit-order",
+  "capabilityVersion": 1,
+  "startedAt": "2026-09-09T22:06:24.507Z",
+  "finishedAt": "2026-09-09T22:10:33.662Z",
+  "outputs": {},
+  "evidence": [
+    {
+      "kind": "log",
+      "uri": "file:///Users/leoli/Projects/Byheart/evidence/handoff/replay.jsonl",
+      "description": "redacted structured run event log"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "format": "byheart-takehome-evidence-manifest/v1",
+  "generatedAt": "2026-09-09T22:05:59.427Z",
+  "entrypoint": "http://127.0.0.1:4173",
+  "note": "These are deterministic replay fixtures. Genuine model-driven discovery and manual same-session takeover are captured separately as described in evidence/README.md.",
+  "cases": [
+    {
+      "name": "replay-success",
+      "inputs": {
+        "market": "VES-04",
+        "quantity": "10"
+      },
+      "status": "success",
+      "outputs": {
+        "reference": "STG-001",
+        "market": "VES-04",
+        "quantity": 10,
+        "total_credits": 2120
+      },
+      "directory": "evidence/generated/replay-success"
+    },
+    {
+      "name": "replay-known-outcome",
+      "inputs": {
+        "market": "NOPE-00",
+        "quantity": "25"
+      },
+      "status": "known_outcome",
+      "code": "market_not_found",
+      "directory": "evidence/generated/replay-known-outcome"
+    },
+    {
+      "name": "replay-session-recovery",
+      "inputs": {
+        "market": "ASH-17",
+        "quantity": "25"
+      },
+      "status": "success",
+      "outputs": {
+        "reference": "STG-001",
+        "market": "ASH-17",
+        "quantity": 25,
+        "total_credits": 3600
+      },
+      "directory": "evidence/generated/replay-session-recovery"
+    },
+    {
+      "name": "replay-hard-failure",
+      "inputs": {
+        "market": "ASH-17",
+        "quantity": "25"
+      },
+      "status": "failure",
+      "class": "action_failed",
+      "stepId": "open-order",
+      "directory": "evidence/generated/replay-hard-failure"
+    },
+    {
+      "name": "replay-consequence-boundary",
+      "inputs": {
+        "market": "ASH-17",
+        "quantity": "25"
+      },
+      "status": "intervention_required",
+      "stepId": "submit-purchase",
+      "directory": "evidence/generated/replay-consequence-boundary"
+    }
+  ]
+}

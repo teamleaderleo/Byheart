@@ -1,0 +1,11 @@
+{"at":"2026-09-09T22:05:54.692Z","runId":"replay-hard-failure","kind":"run_started","data":{"capabilityId":"perihelion.stage-supply-order","capabilityVersion":1,"adapter":"browser","sessionId":"d5addc25-cbd2-46dc-bdd1-d049f2e2ae3f"}}
+{"at":"2026-09-09T22:05:54.692Z","runId":"replay-hard-failure","kind":"step_started","data":{"stepId":"enter-market","action":{"kind":"type","target":{"kind":"label","label":"Market code"},"text":"ASH-17"}}}
+{"at":"2026-09-09T22:05:55.120Z","runId":"replay-hard-failure","kind":"action_receipt","data":{"stepId":"enter-market","attempt":1,"delivered":true,"effectObserved":true,"detail":"typed 6 characters"}}
+{"at":"2026-09-09T22:05:55.121Z","runId":"replay-hard-failure","kind":"step_started","data":{"stepId":"search-market","action":{"kind":"click","target":{"kind":"role","role":"button","name":"Search"}}}}
+{"at":"2026-09-09T22:05:55.652Z","runId":"replay-hard-failure","kind":"action_receipt","data":{"stepId":"search-market","attempt":1,"delivered":true,"effectObserved":true,"detail":"click delivered"}}
+{"at":"2026-09-09T22:05:55.654Z","runId":"replay-hard-failure","kind":"step_started","data":{"stepId":"wait-market","action":{"kind":"wait","condition":{"kind":"text_present","text":"MARKET RECORD"},"timeoutMs":2500}}}
+{"at":"2026-09-09T22:05:55.962Z","runId":"replay-hard-failure","kind":"action_receipt","data":{"stepId":"wait-market","attempt":1,"delivered":true,"effectObserved":true,"detail":"wait condition passed"}}
+{"at":"2026-09-09T22:05:55.973Z","runId":"replay-hard-failure","kind":"check","data":{"label":"wait-market:known:market_not_found","passed":false,"detail":"text absent","condition":{"kind":"text_present","text":"NO SUCH MARKET"}}}
+{"at":"2026-09-09T22:05:55.985Z","runId":"replay-hard-failure","kind":"check","data":{"label":"wait-market","passed":true,"detail":"text present","condition":{"kind":"text_present","text":"MARKET RECORD"}}}
+{"at":"2026-09-09T22:05:55.986Z","runId":"replay-hard-failure","kind":"step_started","data":{"stepId":"open-order","action":{"kind":"click","target":{"kind":"role","role":"button","name":"Removed legacy control"}}}}
+{"at":"2026-09-09T22:05:56.192Z","runId":"replay-hard-failure","kind":"action_receipt","data":{"stepId":"open-order","attempt":1,"delivered":false,"effectObserved":false,"detail":"target must resolve exactly once; observed 0"}}

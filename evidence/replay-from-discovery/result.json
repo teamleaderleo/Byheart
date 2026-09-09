@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "runId": "3bdef8a7-fa63-4bb4-a450-6539b70eea7b",
+  "capabilityId": "stage-supplies-order",
+  "capabilityVersion": 1,
+  "startedAt": "2026-09-09T22:05:35.975Z",
+  "finishedAt": "2026-09-09T22:05:40.942Z",
+  "outputs": {
+    "reference": "STG-001",
+    "market": "VES-04",
+    "quantity": 10,
+    "total_credits": 2120
+  },
+  "evidence": [
+    {
+      "kind": "log",
+      "uri": "file:///Users/leoli/Projects/Byheart/evidence/replay-from-discovery/replay.jsonl",
+      "description": "redacted structured run event log"
+    }
+  ]
+}

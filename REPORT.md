@@ -65,6 +65,8 @@ A consequential action or a step marked `onFailure: human` pauses automation bef
 
 On resume, Byheart transitions ownership back to automation and verifies the interrupted step's declared postcondition before continuing. The handoff phases are retained in the structured evidence log. This makes the control-transfer mechanism real while keeping the operator UI deliberately small.
 
+The retained run in `evidence/handoff/` paused at `submit-purchase`, passed control to the human, and resumed with session id `3bff1b50-8d2a-4380-b6a8-fc1325e7ddef` unchanged. The log records a passing `submit-purchase:after-human` check and final success. The synthetic target responds to the human click with `HUMAN APPROVAL REQUIRED`; it does not execute a real purchase.
+
 The same ownership idea extends to remote desktops and games: the session identity is the durable object, while agent/human control can change hands.
 
 # Safety
@@ -79,4 +81,4 @@ Structured evidence goes through a shared redaction pass for obvious secret-bear
 
 The submission focuses on one reproducible browser surface and one complete capability lifecycle. Remote-desktop execution, Starsector campaign play, cross-tenant inheritance, capability composition, approval/stability scoring, automatic parameter discovery beyond explicit bindings, checkpoint search, and model routing remain follow-on work even where an adapter seam or prototype already exists.
 
-The final submission pass is operational. `evidence/README.md` contains exact commands for a genuine Codex-driven discovery, deterministic replay evidence, and a manual same-session takeover. `npm run evidence:replays` generates success, typed-output, known-outcome, recovery, hard-failure, and consequence-boundary evidence. The remaining provenance-sensitive pieces are to run Codex through the resident discovery bridge and perform one real manual takeover in that same live session, then retain those artifacts under `/evidence/`.
+The retained evidence is indexed in `evidence/README.md`. One genuine Codex bridge discovery compiled seven successful actions and stopped at `ORDER STAGED` for ASH-17 / 25 supplies. Its capability replayed successfully for both VES-04 / 10 and ASH-17 / 25 with application-extracted typed outputs. The five generated cases demonstrate success, a known outcome, recovery, deliberate hard failure, and intervention. The human completed the separate same-session takeover and returned control through the operator surface. The full local suite passed all 34 tests.

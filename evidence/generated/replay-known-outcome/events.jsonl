@@ -1,0 +1,9 @@
+{"at":"2026-09-09T22:05:39.952Z","runId":"replay-known-outcome","kind":"run_started","data":{"capabilityId":"perihelion.stage-supply-order","capabilityVersion":1,"adapter":"browser","sessionId":"06a5c1c1-2eda-4f51-a4e4-36d5420619e4"}}
+{"at":"2026-09-09T22:05:39.981Z","runId":"replay-known-outcome","kind":"step_started","data":{"stepId":"enter-market","action":{"kind":"type","target":{"kind":"label","label":"Market code"},"text":"NOPE-00"}}}
+{"at":"2026-09-09T22:05:40.751Z","runId":"replay-known-outcome","kind":"action_receipt","data":{"stepId":"enter-market","attempt":1,"delivered":true,"effectObserved":true,"detail":"typed 7 characters"}}
+{"at":"2026-09-09T22:05:40.768Z","runId":"replay-known-outcome","kind":"step_started","data":{"stepId":"search-market","action":{"kind":"click","target":{"kind":"role","role":"button","name":"Search"}}}}
+{"at":"2026-09-09T22:05:41.268Z","runId":"replay-known-outcome","kind":"action_receipt","data":{"stepId":"search-market","attempt":1,"delivered":true,"effectObserved":true,"detail":"click delivered"}}
+{"at":"2026-09-09T22:05:41.268Z","runId":"replay-known-outcome","kind":"step_started","data":{"stepId":"wait-market","action":{"kind":"wait","condition":{"kind":"text_present","text":"MARKET RECORD"},"timeoutMs":2500}}}
+{"at":"2026-09-09T22:05:44.175Z","runId":"replay-known-outcome","kind":"action_receipt","data":{"stepId":"wait-market","attempt":1,"delivered":false,"effectObserved":false,"detail":"condition timed out after 2500ms: text absent"}}
+{"at":"2026-09-09T22:05:44.187Z","runId":"replay-known-outcome","kind":"check","data":{"label":"wait-market:known:market_not_found","passed":true,"detail":"text present","condition":{"kind":"text_present","text":"NO SUCH MARKET"}}}
+{"at":"2026-09-09T22:05:44.187Z","runId":"replay-known-outcome","kind":"run_finished","data":{"status":"known_outcome"}}
