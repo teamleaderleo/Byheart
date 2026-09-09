@@ -62,14 +62,15 @@ export class DiscoverySession {
       startedAt: this.now().toISOString(),
       entries: [],
     };
+    const allowedEntrypoints = options.allowedEntrypoints?.length
+      ? options.allowedEntrypoints
+      : target.entrypoint
+        ? defaultEntrypoints(target.entrypoint)
+        : undefined;
     this.policy = {
       allowedAdapters: [target.adapter],
       allowedActions: options.allowedActions,
-      ...(options.allowedEntrypoints?.length
-        ? { allowedEntrypoints: options.allowedEntrypoints }
-        : target.entrypoint
-          ? { allowedEntrypoints: [target.entrypoint] }
-          : {}),
+      ...(allowedEntrypoints ? { allowedEntrypoints } : {}),
       consequentialPolicy: options.consequentialPolicy ?? "require_human",
     };
   }
@@ -181,4 +182,16 @@ export class DiscoverySession {
   private requireOpen(): void {
     if (this.finished) throw new Error("discovery session is already finished");
   }
+}
+
+function defaultEntrypoints(entrypoint: string): string[] {
+  try {
+    const parsed = new URL(entrypoint);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return [`${parsed.origin}/*`];
+    }
+  } catch {
+    // Adapter-specific entrypoints can be non-URL identifiers.
+  }
+  return [entrypoint];
 }
