@@ -64,9 +64,13 @@ The repository now contains:
 - a resident discovery session shared by embedded and external agents;
 - a local external-discovery bridge designed for Codex/computer-use agents;
 - successful-trace → parameterized capability compilation;
+- versioned capability catalog and planner-facing tool descriptions;
+- deterministic `byheart-plan/v1` capability composition;
+- checkpointed candidate comparison with Pareto-frontier reporting;
 - Playwright browser adapter with cross-frame semantic targeting;
 - remote-desktop surface contract and HTTP transport;
 - Preflight/Starsector semantic surface adapter over its closed request/receipt protocol;
+- hybrid visual + semantic surfaces for game/native automation;
 - an optional direct OpenAI Responses discovery model;
 - a deliberately awkward local legacy-style browser target.
 
@@ -159,6 +163,38 @@ npm run byheart -- replay \
 
 Byheart drives the safe steps to the review screen. The final consequential click pauses automation and opens a tiny operator surface. Use the same live target browser to perform the requested step, then choose **Resume automation**. Replay verifies the postcondition and continues on that same session.
 
+## Learned skills and checkpoint search
+
+Capabilities can now become a planner vocabulary instead of isolated macros.
+
+`CapabilityCatalog` keeps versioned skills. `byheart-plan/v1` composes them deterministically on one live surface, with earlier outputs available to later steps through `steps.<id>.outputs.*` templates.
+
+A separate checkpoint runner compares several already-proposed candidates from the exact same baseline:
+
+```text
+restore checkpoint
+  ↓
+execute candidate A
+  ↓
+score
+
+restore checkpoint
+  ↓
+execute candidate B
+  ↓
+score
+
+restore checkpoint
+  ↓
+execute candidate C
+  ↓
+score
+
+Pareto frontier + declared weighted utility
+```
+
+This is aimed at Starsector/Battle Brothers experiments where Codex proposes meaningful plans and Byheart handles repeatable execution/comparison. See [`research/SKILLS_AND_SEARCH.md`](research/SKILLS_AND_SEARCH.md).
+
 ## Optional direct API discovery
 
 A standalone provider-backed path still exists when it is useful:
@@ -196,7 +232,7 @@ The remote adapter defines a small session/frame/input protocol for x86 Linux, W
 
 ### Starsector through Preflight
 
-Preflight already publishes exact PID/start-bound semantic state and accepts a closed catalog of reviewed game actions. Byheart now has an adapter for that boundary. This is the beginning of a split where Preflight owns exact game/process/save mechanics while Byheart owns planning, learned procedures, checkpoint search, and eventual capability composition.
+Preflight already publishes exact PID/start-bound semantic state and accepts a closed catalog of reviewed game actions. Byheart now has an adapter for that boundary. This is the beginning of a split where Preflight owns exact game/process/save mechanics while Byheart owns planning, learned procedures, checkpoint search, and capability composition.
 
 Interesting campaign work includes pause/resume movement, patrol evasion, market interaction, trading/smuggling, route planning, strategic acquisitions, and repeated checkpoint experiments. Fine combat control can remain secondary while the game autopilot handles ordinary fights.
 
@@ -209,6 +245,8 @@ Turn-based combat and long-horizon company management give clean decision bounda
 - [`CODEX.md`](CODEX.md) — primary discovery workflow for Codex/external agents.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — current technical model.
 - [`ROADMAP.md`](ROADMAP.md) — ambitious implementation/research path.
+- [`research/SKILLS_AND_SEARCH.md`](research/SKILLS_AND_SEARCH.md) — capability composition and checkpoint search.
+- [`research/GAMEPLAY.md`](research/GAMEPLAY.md) — game-learning direction.
 - [`TAKEHOME.md`](TAKEHOME.md) — the interview-project slice.
 - [`REPORT.md`](REPORT.md) — live draft under the assignment's exact headings.
 - [`NOTES.md`](NOTES.md) — the larger idea pile.
