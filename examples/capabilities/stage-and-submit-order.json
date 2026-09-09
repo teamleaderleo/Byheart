@@ -1,0 +1,78 @@
+{
+  "format": "byheart-capability/v1",
+  "id": "perihelion.stage-and-submit-order",
+  "name": "Stage and submit a supply order",
+  "version": 1,
+  "description": "Drive the safe part deterministically, then transfer the same live browser session to a human for final submission.",
+  "target": {
+    "adapter": "browser",
+    "entrypoint": "http://127.0.0.1:4173"
+  },
+  "inputs": {
+    "market": { "type": "string" },
+    "quantity": { "type": "string" }
+  },
+  "outputs": {},
+  "steps": [
+    {
+      "id": "enter-market",
+      "action": { "kind": "type", "target": { "kind": "label", "label": "Market code" }, "text": "{{input.market}}" }
+    },
+    {
+      "id": "search-market",
+      "action": { "kind": "click", "target": { "kind": "role", "role": "button", "name": "Search" } }
+    },
+    {
+      "id": "wait-market",
+      "action": { "kind": "wait", "condition": { "kind": "text_present", "text": "MARKET RECORD" }, "timeoutMs": 2500 },
+      "after": [{ "kind": "text_present", "text": "MARKET RECORD" }],
+      "knownOutcomes": [
+        { "code": "market_not_found", "when": { "kind": "text_present", "text": "NO SUCH MARKET" } }
+      ],
+      "onFailure": "human"
+    },
+    {
+      "id": "open-order",
+      "action": { "kind": "click", "target": { "kind": "role", "role": "button", "name": "Stage purchase order" } },
+      "onFailure": "human"
+    },
+    {
+      "id": "choose-supplies",
+      "action": { "kind": "select", "target": { "kind": "label", "label": "Commodity" }, "value": "supplies" }
+    },
+    {
+      "id": "enter-quantity",
+      "action": { "kind": "type", "target": { "kind": "label", "label": "Quantity" }, "text": "{{input.quantity}}" }
+    },
+    {
+      "id": "review-order",
+      "action": { "kind": "click", "target": { "kind": "role", "role": "button", "name": "Review order" } }
+    },
+    {
+      "id": "wait-review",
+      "action": { "kind": "wait", "condition": { "kind": "text_present", "text": "ORDER REVIEW" }, "timeoutMs": 2500 },
+      "after": [{ "kind": "text_present", "text": "ORDER REVIEW" }],
+      "onFailure": "human"
+    },
+    {
+      "id": "submit-purchase",
+      "action": {
+        "kind": "click",
+        "target": { "kind": "role", "role": "button", "name": "Submit purchase" },
+        "risk": "consequential",
+        "description": "Final submission is deliberately reserved for a human operator."
+      },
+      "after": [{ "kind": "text_present", "text": "HUMAN APPROVAL REQUIRED" }]
+    }
+  ],
+  "success": [
+    { "kind": "text_present", "text": "HUMAN APPROVAL REQUIRED" }
+  ],
+  "policy": {
+    "allowedAdapters": ["browser"],
+    "allowedActions": ["click", "type", "select", "wait"],
+    "allowedEntrypoints": ["http://127.0.0.1:4173"],
+    "consequentialActions": ["click"],
+    "consequentialPolicy": "require_human"
+  }
+}
