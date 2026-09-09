@@ -67,8 +67,9 @@ export class PlaywrightSurface implements Surface {
     return {
       adapter: "browser",
       sessionId: this.options.sessionId,
-      entrypoint: this.options.entrypoint,
+      entrypoint: this.page.url(),
       metadata: {
+        configuredEntrypoint: this.options.entrypoint,
         currentUrl: this.page.url(),
         pages: this.context.pages().length,
       },
@@ -298,6 +299,8 @@ export class PlaywrightSurface implements Surface {
           elements.slice(0, 200).map((element) => {
             const html = element as HTMLElement;
             const input = element as HTMLInputElement;
+            const style = window.getComputedStyle(html);
+            const rect = html.getBoundingClientRect();
             const labels = "labels" in input && input.labels
               ? Array.from(input.labels).map((label) => label.textContent?.trim() ?? "").filter(Boolean)
               : [];
@@ -311,16 +314,26 @@ export class PlaywrightSurface implements Surface {
               labels,
               text: (html.innerText || element.textContent || "").trim().slice(0, 220),
               value: "value" in input ? String(input.value ?? "").slice(0, 220) : "",
+              checked: "checked" in input ? Boolean(input.checked) : false,
+              disabled: "disabled" in input ? Boolean(input.disabled) : false,
+              visible: style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0,
             };
           }),
         )
         .catch(() => []);
+      const dialogs = await frame.locator("dialog").evaluateAll((elements) =>
+        elements.map((element) => ({
+          open: element.hasAttribute("open"),
+          text: (element.textContent ?? "").trim().slice(0, 1000),
+        })),
+      ).catch(() => []);
 
       frames.push({
         name: frame.name(),
         url: frame.url(),
         text: bodyText.slice(0, 7000),
         controls: controls as JsonValue,
+        dialogs: dialogs as JsonValue,
       });
     }
 
