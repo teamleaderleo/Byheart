@@ -1,0 +1,13 @@
+:root { font-family: "Courier New", monospace; background: #d5d1bd; color: #101010; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; }
+.shell { width: 100vw; height: 100vh; border-collapse: collapse; }
+.masthead { height: 44px; padding: 8px 12px; background: #1d2840; color: #f2f1d8; border-bottom: 4px double #8b845d; }
+.masthead span { float: right; font-size: 12px; }
+.sidebar { width: 210px; vertical-align: top; padding: 12px; background: #b8b294; border-right: 2px solid #5f5a45; }
+.sidebar button { display: block; width: 100%; margin: 7px 0; padding: 7px; text-align: left; font: inherit; }
+.sidebar label { display: block; font-size: 12px; margin: 8px 0; }
+.nav-label { font-weight: bold; border-bottom: 1px solid #5f5a45; padding-bottom: 5px; }
+.workspace { padding: 6px; vertical-align: top; }
+#workframe { width: 100%; height: calc(100vh - 58px); border: 2px inset #ede8ce; background: white; }
+dialog { max-width: 420px; border: 3px double #222; font-family: inherit; }
