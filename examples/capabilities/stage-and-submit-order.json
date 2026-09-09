@@ -72,7 +72,6 @@
     "allowedAdapters": ["browser"],
     "allowedActions": ["click", "type", "select", "wait"],
     "allowedEntrypoints": ["http://127.0.0.1:4173"],
-    "consequentialActions": ["click"],
     "consequentialPolicy": "require_human"
   }
 }
