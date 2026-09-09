@@ -17,9 +17,9 @@ export interface OperatorGateOptions {
 export class OperatorGate {
   private readonly host: string;
   private readonly requestedPort: number;
-  private server?: Server;
-  private pending?: PendingIntervention;
-  private listeningPort?: number;
+  private server: Server | undefined;
+  private pending: PendingIntervention | undefined;
+  private listeningPort: number | undefined;
 
   constructor(options: OperatorGateOptions = {}) {
     this.host = options.host ?? "127.0.0.1";
