@@ -56,7 +56,7 @@ export interface HttpRemoteTransportOptions {
 
 export class HttpRemoteTransport implements RemoteTransport {
   private readonly endpoint: string;
-  private readonly token?: string;
+  private readonly token: string | undefined;
   private readonly timeoutMs: number;
 
   constructor(options: HttpRemoteTransportOptions) {
@@ -124,7 +124,7 @@ export interface RemoteDesktopSurfaceOptions {
 
 export class RemoteDesktopSurface implements Surface {
   private readonly artifactDir: string;
-  private readonly requestedSessionId?: string;
+  private readonly requestedSessionId: string | undefined;
   private readonly waitIntervalMs: number;
   private evidenceSequence = 0;
   private cachedSession?: RemoteSession;
