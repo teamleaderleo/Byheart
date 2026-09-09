@@ -130,8 +130,19 @@ window.reviewOrder = async ({ commodity, quantity }) => {
 };
 
 window.stageOrder = () => {
-  staged.push(window.pendingOrder);
-  render(`<p class="good"><strong>ORDER STAGED</strong></p><p>Reference STG-${String(staged.length).padStart(3, "0")}</p><button onclick="parent.showQueue()">View staged orders</button>`);
+  const order = window.pendingOrder;
+  staged.push(order);
+  const reference = `STG-${String(staged.length).padStart(3, "0")}`;
+  render(`
+    <p class="good"><strong>ORDER STAGED</strong></p>
+    <dl>
+      <dt>Reference</dt><dd><span role="status" aria-label="Order reference">${reference}</span></dd>
+      <dt>Market</dt><dd><span role="status" aria-label="Order market">${order.market}</span></dd>
+      <dt>Quantity</dt><dd><span role="status" aria-label="Order quantity">${order.quantity}</span></dd>
+      <dt>Total</dt><dd><span role="status" aria-label="Order total credits">${order.total}</span> credits</dd>
+    </dl>
+    <button onclick="parent.showQueue()">View staged orders</button>
+  `);
 };
 
 window.submitOrder = () => {
