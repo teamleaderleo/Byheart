@@ -13,7 +13,8 @@
     "demo": "npm run build && node dist/src/demo.js",
     "demo:target": "node demo/legacy-console/server.mjs",
     "browser:install": "playwright install chromium",
-    "byheart": "npm run build && node dist/src/cli.js"
+    "byheart": "npm run build && node dist/src/cli.js",
+    "evidence:replays": "npm run build && node scripts/capture-takehome-replays.mjs"
   },
   "engines": {
     "node": ">=22"

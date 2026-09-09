@@ -92,6 +92,7 @@ export class PlaywrightSurface implements Surface {
     const before = await this.observe();
     let delivered = false;
     let detail = "";
+    let targetEffectObserved: boolean | undefined;
 
     try {
       switch (action.kind) {
@@ -111,17 +112,36 @@ export class PlaywrightSurface implements Surface {
           break;
         case "type": {
           const locator = await this.uniqueLocator(action.target);
+          const beforeValue = await readLocatorValue(locator).catch(() => undefined);
           if (action.clear === false) await locator.pressSequentially(action.text);
           else await locator.fill(action.text);
+          const afterValue = await readLocatorValue(locator).catch(() => undefined);
           delivered = true;
+          if (action.clear === false) {
+            targetEffectObserved = action.text.length === 0 || (
+              beforeValue !== undefined &&
+              afterValue !== undefined &&
+              !deepEqual(beforeValue, afterValue)
+            );
+          } else {
+            targetEffectObserved = afterValue === action.text || (
+              beforeValue !== undefined &&
+              afterValue !== undefined &&
+              !deepEqual(beforeValue, afterValue)
+            );
+          }
           detail = `typed ${action.text.length} characters`;
           break;
         }
-        case "select":
-          await (await this.uniqueLocator(action.target)).selectOption(action.value);
+        case "select": {
+          const locator = await this.uniqueLocator(action.target);
+          await locator.selectOption(action.value);
+          const afterValue = await readLocatorValue(locator).catch(() => undefined);
           delivered = true;
+          targetEffectObserved = afterValue === action.value;
           detail = `selected ${action.value}`;
           break;
+        }
         case "read":
           await this.uniqueLocator(action.target);
           delivered = true;
@@ -142,9 +162,11 @@ export class PlaywrightSurface implements Surface {
 
     const after = await this.observe();
     const effectObserved = delivered && (
-      action.kind === "read" ||
-      action.kind === "wait" ||
-      fingerprint(before) !== fingerprint(after)
+      targetEffectObserved ?? (
+        action.kind === "read" ||
+        action.kind === "wait" ||
+        fingerprint(before) !== fingerprint(after)
+      )
     );
     const evidence = [before.screenshot, after.screenshot].filter(
       (item): item is EvidenceRef => item !== undefined,
@@ -397,6 +419,10 @@ function coerce(value: JsonValue, type: ScalarType): JsonValue {
   if (value === "true") return true;
   if (value === "false") return false;
   throw new Error(`cannot coerce ${String(value)} to boolean`);
+}
+
+function deepEqual(a: JsonValue, b: JsonValue): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 function summarize(raw: JsonObject): string {

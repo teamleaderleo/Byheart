@@ -12,7 +12,12 @@
     "market": { "type": "string" },
     "quantity": { "type": "string" }
   },
-  "outputs": {},
+  "outputs": {
+    "reference": { "type": "string", "description": "Staged order reference." },
+    "market": { "type": "string", "description": "Market code confirmed by the staged order." },
+    "quantity": { "type": "number", "description": "Quantity accepted by the target application." },
+    "total_credits": { "type": "number", "description": "Total staged order value in credits." }
+  },
   "steps": [
     {
       "id": "enter-market",
@@ -133,6 +138,28 @@
   ],
   "success": [
     { "kind": "text_present", "text": "ORDER STAGED" }
+  ],
+  "extraction": [
+    {
+      "output": "reference",
+      "target": { "kind": "role", "role": "status", "name": "Order reference" },
+      "as": "string"
+    },
+    {
+      "output": "market",
+      "target": { "kind": "role", "role": "status", "name": "Order market" },
+      "as": "string"
+    },
+    {
+      "output": "quantity",
+      "target": { "kind": "role", "role": "status", "name": "Order quantity" },
+      "as": "number"
+    },
+    {
+      "output": "total_credits",
+      "target": { "kind": "role", "role": "status", "name": "Order total credits" },
+      "as": "number"
+    }
   ],
   "policy": {
     "allowedAdapters": ["browser"],
